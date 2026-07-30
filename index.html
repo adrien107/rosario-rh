@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RH — Suivi salariés — Rosario</title>
+<style>
+  :root {
+    --ink: #1c1a17;
+    --paper: #faf7f2;
+    --card: #ffffff;
+    --line: #e4ddd1;
+    --accent: #b3401f;
+    --accent-soft: #f4e2da;
+    --ok: #4c7a4c;
+    --muted: #8a8378;
+    --success: #2f6d46;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  header { margin-bottom: 24px; }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin: 0; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+
+  a.employee-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  a.employee-card:hover { border-color: var(--accent); }
+  .employee-name { font-size: 15.5px; font-weight: 700; }
+  .employee-role { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .employee-arrow { color: var(--muted); font-size: 18px; flex-shrink: 0; }
+
+  .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
+  .error-state { color: var(--accent); }
+
+  footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 24px; }
+  .brand-mark { display: block; height: 30px; width: auto; margin: 0 auto 10px; }
+
+  .pin-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 24px;
+  }
+  .pin-screen.hidden { display: none; }
+  .pin-wrap { max-width: 320px; width: 100%; text-align: center; }
+  .pin-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .pin-title { font-size: 22px; margin: 0 0 6px; }
+  .pin-sub { color: var(--muted); font-size: 13.5px; margin: 0 0 24px; }
+  .pin-input {
+    width: 100%;
+    text-align: center;
+    letter-spacing: 0.5em;
+    font-size: 24px;
+    padding: 14px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--ink);
+    margin-bottom: 14px;
+    font-family: inherit;
+  }
+  .pin-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .pin-submit {
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .pin-error { color: var(--accent); font-size: 12.5px; margin-top: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-wrap">
+    <div class="pin-eyebrow">Rosario · Accès RH</div>
+    <h2 class="pin-title">Mot de passe</h2>
+    <p class="pin-sub">Réservé à la direction</p>
+    <input type="password" class="pin-input" id="pinInput" placeholder="Mot de passe" style="letter-spacing:normal; font-size:16px;">
+    <button type="button" class="pin-submit" id="pinSubmitBtn">Déverrouiller</button>
+    <p class="pin-error" id="pinErrorText"></p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Rosario · RH</div>
+    <h1>Suivi salariés</h1>
+    <p class="subtitle">Grupo Domingo — liste des salariés actuels</p>
+  </header>
+
+  <div class="card">
+    <p class="card-title">Salariés</p>
+    <div id="employeeList">
+      <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
+  <footer>
+    <img class="brand-mark" src="data:image/png;base64,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" alt="Rosario">
+    <span>Domingo — Rosario · usage interne</span>
+  </footer>
+</div>
+
+<script>
+  // ---------- Config : à compléter après déploiement de l'Apps Script ----------
+  const APPS_SCRIPT_URL = "PASTE_APPS_SCRIPT_URL_HERE";
+  const ACCESS_KEY = "CHANGE_MOI_4040";
+
+  const employeeListEl = document.getElementById("employeeList");
+
+  function loadRoster() {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_") === 0) {
+      employeeListEl.innerHTML = '<div class="error-state">Apps Script pas encore configuré : colle l\'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
+      return;
+    }
+    fetch(APPS_SCRIPT_URL + "?action=roster&key=" + encodeURIComponent(ACCESS_KEY))
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { employeeListEl.innerHTML = '<div class="error-state">' + data.error + '</div>'; return; }
+        if (!data.length) { employeeListEl.innerHTML = '<div class="empty-state">Aucun salarié dans le roster.</div>'; return; }
+        employeeListEl.innerHTML = "";
+        data.forEach(emp => {
+          const a = document.createElement("a");
+          a.className = "employee-card";
+          a.href = "fiche.html?id=" + encodeURIComponent(emp.id);
+          a.innerHTML = '<div><div class="employee-name"></div><div class="employee-role"></div></div><span class="employee-arrow">›</span>';
+          a.querySelector(".employee-name").textContent = emp.nom;
+          a.querySelector(".employee-role").textContent = emp.poste || "—";
+          employeeListEl.appendChild(a);
+        });
+      })
+      .catch(() => {
+        employeeListEl.innerHTML = '<div class="error-state">Connexion impossible à l\'Apps Script.</div>';
+      });
+  }
+  loadRoster();
+
+  // ---------- PIN gate ----------
+  (function () {
+    // Mot de passe partagé avec la direction (ex: futur directeur). À changer ici
+    // avant déploiement, et à communiquer de vive voix — pas par écrit non chiffré.
+    const PASSWORD = "CHANGE_MOI";
+    const pinScreen = document.getElementById("pinScreen");
+    const pinInput = document.getElementById("pinInput");
+    const pinSubmitBtn = document.getElementById("pinSubmitBtn");
+    const pinErrorText = document.getElementById("pinErrorText");
+
+    if (sessionStorage.getItem("rosario_rh_unlocked") === "1") {
+      pinScreen.classList.add("hidden");
+    } else {
+      pinInput.focus();
+    }
+    function tryUnlock() {
+      if (pinInput.value === PASSWORD) {
+        sessionStorage.setItem("rosario_rh_unlocked", "1");
+        pinScreen.classList.add("hidden");
+        pinErrorText.textContent = "";
+      } else {
+        pinErrorText.textContent = "Code incorrect.";
+        pinInput.value = "";
+        pinInput.focus();
+      }
+    }
+    pinSubmitBtn.addEventListener("click", tryUnlock);
+    pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); tryUnlock(); } });
+  })();
+</script>
+</body>
+</html>

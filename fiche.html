@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche salarié — RH Rosario</title>
+<style>
+  :root {
+    --ink: #1c1a17;
+    --paper: #faf7f2;
+    --card: #ffffff;
+    --line: #e4ddd1;
+    --accent: #b3401f;
+    --accent-soft: #f4e2da;
+    --ok: #4c7a4c;
+    --muted: #8a8378;
+    --success: #2f6d46;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 24px 16px 80px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  header { margin-bottom: 20px; }
+  .back-link { display: inline-block; color: var(--muted); font-size: 12.5px; text-decoration: none; margin-bottom: 10px; }
+  .back-link:hover { color: var(--accent); }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin: 0; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin: 0 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .card-subtitle { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .card-subtitle:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+
+  label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 6px; }
+  input[type="date"], input[type="text"], select, textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+    font-size: 15px; background: var(--paper); color: var(--ink); font-family: inherit;
+  }
+  textarea { min-height: 80px; resize: vertical; line-height: 1.4; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row > div { flex: 1; }
+
+  .identity-grid { display: grid; gap: 14px; }
+
+  button { padding: 10px 16px; border-radius: 10px; border: none; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-secondary { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+  .btn-small { padding: 7px 11px; font-size: 12.5px; }
+  .status-msg { font-size: 12.5px; color: var(--ok); margin-top: 8px; min-height: 16px; }
+
+  .essai-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; border-bottom: 1px solid var(--line); }
+  .essai-row:last-child { border-bottom: none; }
+  .essai-row .k { color: var(--muted); }
+  .essai-row .v { font-weight: 600; text-align: right; }
+  .essai-note { font-size: 11.5px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+  .essai-placeholder { color: var(--muted); font-size: 13.5px; }
+
+  .prev-box { background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 13.5px; }
+  .prev-box .prev-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 6px; }
+  .prev-box p { margin: 4px 0; color: var(--ink); }
+  .prev-box .prev-empty { color: var(--muted); font-style: italic; }
+
+  .schedule-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 14px; }
+  .schedule-row > div:first-child { flex: 1; }
+  .confirm-status { font-size: 12.5px; margin-top: 8px; }
+  .confirm-status.found { color: var(--success); }
+  .confirm-status.notfound { color: var(--muted); }
+
+  .subjects-list { margin-bottom: 14px; }
+  .task { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .task:last-child { border-bottom: none; }
+  .task input[type="checkbox"] { width: 19px; height: 19px; margin-top: 1px; flex-shrink: 0; accent-color: var(--accent); }
+  .task label { font-size: 14px; font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--ink); line-height: 1.4; margin: 0; cursor: pointer; }
+  .task.done label { color: var(--muted); text-decoration: line-through; }
+  .subjects-empty { color: var(--muted); font-size: 12.5px; font-style: italic; }
+
+  .validated-row { display: flex; align-items: center; gap: 8px; margin: 14px 0; cursor: pointer; }
+  .validated-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--success); }
+  .validated-row span { font-size: 13.5px; font-weight: 600; }
+  .validated-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: var(--success); color: white; padding: 3px 8px; border-radius: 999px; }
+
+  .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
+  .error-state { color: var(--accent); }
+
+  footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 24px; }
+
+  .pin-screen { position: fixed; inset: 0; background: var(--paper); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 24px; }
+  .pin-screen.hidden { display: none; }
+  .pin-wrap { max-width: 320px; width: 100%; text-align: center; }
+  .pin-eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+  .pin-title { font-size: 22px; margin: 0 0 6px; }
+  .pin-sub { color: var(--muted); font-size: 13.5px; margin: 0 0 24px; }
+  .pin-input { width: 100%; text-align: center; font-size: 16px; padding: 14px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); margin-bottom: 14px; font-family: inherit; }
+  .pin-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .pin-submit { width: 100%; padding: 13px 16px; border-radius: 10px; border: none; background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .pin-error { color: var(--accent); font-size: 12.5px; margin-top: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-wrap">
+    <div class="pin-eyebrow">Rosario · Accès RH</div>
+    <h2 class="pin-title">Mot de passe</h2>
+    <p class="pin-sub">Réservé à la direction</p>
+    <input type="password" class="pin-input" id="pinInput" placeholder="Mot de passe">
+    <button type="button" class="pin-submit" id="pinSubmitBtn">Déverrouiller</button>
+    <p class="pin-error" id="pinErrorText"></p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <a class="back-link" href="index.html">‹ Retour à la liste</a>
+    <div class="eyebrow">Rosario · RH</div>
+    <h1 id="employeeName">—</h1>
+    <p class="subtitle" id="employeeRole">—</p>
+  </header>
+
+  <div id="loadError" class="error-state" style="display:none;"></div>
+
+  <div id="content" style="display:none;">
+
+    <div class="card">
+      <p class="card-title">Informations contrat</p>
+      <div class="identity-grid">
+        <div class="field-row">
+          <div class="field">
+            <label for="fCategorie">Catégorie</label>
+            <select id="fCategorie">
+              <option value="">— À définir —</option>
+              <option value="Employé">Employé</option>
+              <option value="Agent de maîtrise">Agent de maîtrise</option>
+              <option value="Cadre">Cadre</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fTypeContrat">Type de contrat</label>
+            <select id="fTypeContrat">
+              <option value="">— À définir —</option>
+              <option value="CDI">CDI</option>
+              <option value="CDD">CDD</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="fDateRecrutement">Date de recrutement</label>
+            <input type="date" id="fDateRecrutement">
+          </div>
+          <div class="field" id="fDateFinCDDWrap" style="display:none;">
+            <label for="fDateFinCDD">Date de fin (CDD)</label>
+            <input type="date" id="fDateFinCDD">
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary btn-small" id="saveEmployeeBtn" style="margin-top:14px;">Enregistrer</button>
+      <div class="status-msg" id="employeeStatusMsg"></div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Période d'essai</p>
+      <div id="essaiContent"><p class="essai-placeholder">Renseigne la date de recrutement ci-dessus pour activer le calcul.</p></div>
+      <p class="essai-note">Indicatif, basé sur le Code du travail (art. L.1221-19) et les délais de prévenance habituels en HCR — à vérifier avec un conseil juridique avant toute décision de rupture. Ne fait pas foi en cas de litige.</p>
+    </div>
+
+    <div id="blocksContainer"></div>
+
+  </div>
+
+  <footer>Domingo — Rosario · RH interne</footer>
+</div>
+
+<script>
+  // ---------- Config : à compléter après déploiement de l'Apps Script ----------
+  const APPS_SCRIPT_URL = "PASTE_APPS_SCRIPT_URL_HERE";
+  const ACCESS_KEY = "CHANGE_MOI_4040";
+
+  // Doit rester identique à la liste BLOCKS du fichier .gs.
+  const BLOCKS = [
+    { key: "onboarding", label: "On-boarding", kind: "single", showPrevious: null },
+    { key: "formation", label: "Formation & Retour 1ère semaine", kind: "double", showPrevious: null },
+    { key: "month1", label: "Entretien 1 mois", kind: "double", showPrevious: "formation" },
+    { key: "month2", label: "Entretien 2 mois", kind: "double", showPrevious: "month1" },
+    { key: "month3", label: "Entretien 3 mois", kind: "double", showPrevious: "month2" },
+    { key: "month4", label: "Entretien 4 mois", kind: "double", showPrevious: "month3" },
+    { key: "month5", label: "Entretien 5 mois", kind: "double", showPrevious: "month4" },
+    { key: "biannual", label: "Entretien Bi-Annuel (6 mois)", kind: "double", showPrevious: "month5" },
+    { key: "month7", label: "Entretien 7 mois", kind: "double", showPrevious: "biannual" },
+    { key: "month8", label: "Entretien 8 mois", kind: "double", showPrevious: "month7" },
+    { key: "month9", label: "Entretien 9 mois", kind: "double", showPrevious: "month8" },
+    { key: "month10", label: "Entretien 10 mois", kind: "double", showPrevious: "month9" },
+    { key: "month11", label: "Entretien 11 mois", kind: "double", showPrevious: "month10" },
+    { key: "annual", label: "Entretien Annuel (12 mois)", kind: "double", showPrevious: "month11" },
+  ];
+  const BLOCK_BY_KEY = {};
+  BLOCKS.forEach(b => BLOCK_BY_KEY[b.key] = b);
+
+  const ESSAI_INITIAL = { "Employé": 2, "Agent de maîtrise": 3, "Cadre": 4 };
+  const ESSAI_MAX_RENEWED = { "Employé": 4, "Agent de maîtrise": 6, "Cadre": 8 };
+
+  const params = new URLSearchParams(window.location.search);
+  const employeeId = params.get("id");
+
+  let employeeData = null;
+  let blocksData = {};
+  let subjectsData = {};
+
+  function apiGet(action, extra) {
+    const qs = new URLSearchParams(Object.assign({ action: action, key: ACCESS_KEY }, extra || {}));
+    return fetch(APPS_SCRIPT_URL + "?" + qs.toString()).then(r => r.json());
+  }
+  function apiPost(body) {
+    return fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(Object.assign({ key: ACCESS_KEY }, body)) }).then(r => r.json());
+  }
+
+  function init() {
+    if (!employeeId) { showError("Aucun salarié sélectionné — reviens à la liste."); return; }
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_") === 0) {
+      showError("Apps Script pas encore configuré : colle l'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.");
+      return;
+    }
+    Promise.all([apiGet("employee", { id: employeeId }), apiGet("subjects")]).then(([empRes, subjRes]) => {
+      if (empRes.error) { showError(empRes.error); return; }
+      employeeData = empRes.employee;
+      blocksData = empRes.blocks || {};
+      subjectsData = subjRes || {};
+      render();
+    }).catch(() => showError("Connexion impossible à l'Apps Script."));
+  }
+
+  function showError(msg) {
+    document.getElementById("loadError").style.display = "block";
+    document.getElementById("loadError").textContent = msg;
+  }
+
+  function render() {
+    document.getElementById("content").style.display = "block";
+    document.getElementById("employeeName").textContent = employeeData.nom;
+    document.getElementById("employeeRole").textContent = employeeData.poste || "—";
+    document.title = employeeData.nom + " — RH Rosario";
+
+    document.getElementById("fCategorie").value = employeeData.categorie || "";
+    document.getElementById("fTypeContrat").value = employeeData.typeContrat || "";
+    document.getElementById("fDateRecrutement").value = employeeData.dateRecrutement || "";
+    document.getElementById("fDateFinCDD").value = employeeData.dateFinCDD || "";
+    toggleCDDField();
+
+    renderEssai();
+    renderBlocks();
+  }
+
+  // ---------- Informations contrat ----------
+  function toggleCDDField() {
+    document.getElementById("fDateFinCDDWrap").style.display = (document.getElementById("fTypeContrat").value === "CDD") ? "block" : "none";
+  }
+  document.getElementById("fTypeContrat").addEventListener("change", () => { toggleCDDField(); renderEssai(); });
+  document.getElementById("fCategorie").addEventListener("change", renderEssai);
+  document.getElementById("fDateRecrutement").addEventListener("change", renderEssai);
+  document.getElementById("fDateFinCDD").addEventListener("change", renderEssai);
+
+  document.getElementById("saveEmployeeBtn").addEventListener("click", () => {
+    const msg = document.getElementById("employeeStatusMsg");
+    msg.textContent = "Enregistrement…";
+    apiPost({
+      action: "updateEmployee",
+      id: employeeId,
+      Categorie: document.getElementById("fCategorie").value,
+      TypeContrat: document.getElementById("fTypeContrat").value,
+      DateRecrutement: document.getElementById("fDateRecrutement").value,
+      DateFinCDD: document.getElementById("fDateFinCDD").value,
+    }).then(res => {
+      msg.textContent = res.error ? res.error : "Enregistré.";
+      if (!res.error) {
+        employeeData.categorie = document.getElementById("fCategorie").value;
+        employeeData.typeContrat = document.getElementById("fTypeContrat").value;
+        employeeData.dateRecrutement = document.getElementById("fDateRecrutement").value;
+        employeeData.dateFinCDD = document.getElementById("fDateFinCDD").value;
+      }
+      setTimeout(() => { msg.textContent = ""; }, 2500);
+    }).catch(() => { msg.textContent = "Connexion impossible."; });
+  });
+
+  // ---------- Période d'essai ----------
+  function addMonths(date, months) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + months); return d; }
+  function fmtDateFr(d) { return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }); }
+
+  function computeEssai() {
+    const hireStr = document.getElementById("fDateRecrutement").value;
+    if (!hireStr) return null;
+    const hireDate = new Date(hireStr + "T00:00:00");
+    const typeContrat = document.getElementById("fTypeContrat").value || "CDI";
+    const categorie = document.getElementById("fCategorie").value || "Employé";
+    let initialEnd, maxEnd, note = "";
+
+    if (typeContrat === "CDD") {
+      const cddEndStr = document.getElementById("fDateFinCDD").value;
+      if (!cddEndStr) return { error: "Renseigne la date de fin du CDD pour calculer la période d'essai." };
+      const cddEnd = new Date(cddEndStr + "T00:00:00");
+      const contractDays = Math.round((cddEnd - hireDate) / 86400000);
+      let essaiDays;
+      if (contractDays <= 183) {
+        essaiDays = Math.min(Math.ceil(contractDays / 7), 14);
+      } else {
+        essaiDays = 30;
+      }
+      initialEnd = new Date(hireDate.getTime() + essaiDays * 86400000);
+      maxEnd = initialEnd;
+      note = "CDD : 1 jour d'essai par semaine de contrat (max 2 semaines) si contrat ≤ 6 mois, sinon 1 mois max. Pas de renouvellement standard.";
+    } else {
+      const initMonths = ESSAI_INITIAL[categorie] || ESSAI_INITIAL["Employé"];
+      const maxMonths = ESSAI_MAX_RENEWED[categorie] || ESSAI_MAX_RENEWED["Employé"];
+      initialEnd = addMonths(hireDate, initMonths);
+      maxEnd = addMonths(hireDate, maxMonths);
+    }
+
+    const now = new Date();
+    const presenceDays = Math.floor((now - hireDate) / 86400000);
+    let employerNotice = presenceDays < 8 ? "24 heures" : presenceDays <= 30 ? "48 heures" : presenceDays <= 90 ? "2 semaines" : "1 mois";
+    let employeeNotice = presenceDays < 8 ? "24 heures" : "48 heures";
+    let status = presenceDays < 0 ? "not_started" : (now < initialEnd ? "en_cours" : (now < maxEnd ? "renouvelable" : "terminee"));
+
+    return { hireDate, initialEnd, maxEnd, presenceDays, employerNotice, employeeNotice, status, note };
+  }
+
+  function renderEssai() {
+    const el = document.getElementById("essaiContent");
+    const r = computeEssai();
+    if (!r) { el.innerHTML = '<p class="essai-placeholder">Renseigne la date de recrutement ci-dessus pour activer le calcul.</p>'; return; }
+    if (r.error) { el.innerHTML = '<p class="essai-placeholder">' + r.error + '</p>'; return; }
+    const statusLabel = { not_started: "Pas encore commencée", en_cours: "En cours", renouvelable: "Terminée (renouvellement possible dans la limite légale)", terminee: "Terminée" }[r.status];
+    let html = "";
+    html += row("Ancienneté", r.presenceDays + " jour" + (r.presenceDays > 1 ? "s" : ""));
+    html += row("Statut", statusLabel);
+    html += row("Fin de période d'essai (sans renouvellement)", fmtDateFr(r.initialEnd));
+    if (r.maxEnd.getTime() !== r.initialEnd.getTime()) html += row("Fin maximale (avec renouvellement)", fmtDateFr(r.maxEnd));
+    html += row("Délai de prévenance — employeur (si rupture aujourd'hui)", r.employerNotice);
+    html += row("Délai de prévenance — salarié (si rupture aujourd'hui)", r.employeeNotice);
+    el.innerHTML = html;
+    if (r.note) el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">' + r.note + '</p>';
+    function row(k, v) { return '<div class="essai-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+  }
+
+  // ---------- Blocs ----------
+  function renderBlocks() {
+    const container = document.getElementById("blocksContainer");
+    container.innerHTML = "";
+    BLOCKS.forEach(block => container.appendChild(renderBlockCard(block)));
+  }
+
+  function renderBlockCard(block) {
+    const data = blocksData[block.key] || {};
+    const subjects = subjectsData[block.key] || [];
+    const subjectsChecked = data.subjectsChecked || {};
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const titleRow = document.createElement("p");
+    titleRow.className = "card-title";
+    titleRow.innerHTML = '<span>' + block.label + '</span>' + (data.validated ? '<span class="validated-badge">Validé</span>' : "");
+    card.appendChild(titleRow);
+
+    // Rappel du bloc précédent
+    if (block.showPrevious) {
+      const prevBlock = BLOCK_BY_KEY[block.showPrevious];
+      const prevData = blocksData[block.showPrevious] || {};
+      const prevBox = document.createElement("div");
+      prevBox.className = "prev-box";
+      let prevHtml = '<div class="prev-label">Rappel — ' + prevBlock.label + '</div>';
+      const hasComments = prevData.commentsGeneral || prevData.commentsEmployee || prevData.commentsManager || prevData.nextSteps;
+      if (!hasComments) {
+        prevHtml += '<p class="prev-empty">Pas encore de commentaires sur ce bloc.</p>';
+      } else {
+        if (prevData.commentsGeneral) prevHtml += "<p>" + escapeHtml(prevData.commentsGeneral) + "</p>";
+        if (prevData.commentsEmployee) prevHtml += "<p><strong>Salarié :</strong> " + escapeHtml(prevData.commentsEmployee) + "</p>";
+        if (prevData.commentsManager) prevHtml += "<p><strong>Manager :</strong> " + escapeHtml(prevData.commentsManager) + "</p>";
+        if (prevData.nextSteps) prevHtml += "<p><strong>Next steps :</strong> " + escapeHtml(prevData.nextSteps) + "</p>";
+      }
+      prevBox.innerHTML = prevHtml;
+      card.appendChild(prevBox);
+    }
+
+    // Date prévue + vérification agenda
+    const scheduleRow = document.createElement("div");
+    scheduleRow.className = "schedule-row";
+    const dateWrap = document.createElement("div");
+    dateWrap.innerHTML = '<label>Date prévue</label><input type="date" class="f-scheduled-date">';
+    dateWrap.querySelector("input").value = data.scheduledDate ? data.scheduledDate.slice(0, 10) : "";
+    scheduleRow.appendChild(dateWrap);
+    const checkBtn = document.createElement("button");
+    checkBtn.className = "btn-secondary btn-small";
+    checkBtn.textContent = "Vérifier l'agenda";
+    scheduleRow.appendChild(checkBtn);
+    card.appendChild(scheduleRow);
+
+    const confirmStatus = document.createElement("div");
+    confirmStatus.className = "confirm-status " + (data.confirmed ? "found" : "notfound");
+    confirmStatus.textContent = data.confirmed
+      ? "✓ Calé — \"" + data.calendarEventTitle + "\""
+      : "Pas encore confirmé dans l'agenda.";
+    card.appendChild(confirmStatus);
+
+    checkBtn.addEventListener("click", () => {
+      const dateVal = dateWrap.querySelector("input").value;
+      if (!dateVal) { confirmStatus.textContent = "Choisis d'abord une date."; return; }
+      confirmStatus.textContent = "Vérification…";
+      apiGet("checkCalendar", { employeeName: employeeData.nom, blockLabel: block.label, date: dateVal }).then(res => {
+        if (res.found) {
+          confirmStatus.className = "confirm-status found";
+          confirmStatus.textContent = "✓ Calé — \"" + res.title + "\"";
+          card.dataset.confirmed = "1";
+          card.dataset.calendarEventTitle = res.title;
+          card.dataset.calendarEventStart = res.start;
+        } else {
+          confirmStatus.className = "confirm-status notfound";
+          confirmStatus.textContent = "Aucun événement trouvé ce jour-là avec \"" + employeeData.nom + "\" dans le titre.";
+          card.dataset.confirmed = "";
+        }
+      }).catch(() => { confirmStatus.textContent = "Connexion impossible."; });
+    });
+
+    // Sujets à aborder
+    const subjectsTitle = document.createElement("p");
+    subjectsTitle.className = "card-subtitle";
+    subjectsTitle.textContent = "Sujets à aborder";
+    card.appendChild(subjectsTitle);
+    const subjectsList = document.createElement("div");
+    subjectsList.className = "subjects-list";
+    if (!subjects.length) {
+      subjectsList.innerHTML = '<p class="subjects-empty">Aucun sujet configuré pour ce bloc — ajoute-les dans l\'onglet "Subjects" du Google Sheet (colonne BlockType = "' + block.key + '").</p>';
+    } else {
+      subjects.forEach(subj => {
+        const row = document.createElement("div");
+        row.className = "task" + (subjectsChecked[subj.id] ? " done" : "");
+        const cbId = "subj-" + block.key + "-" + subj.id;
+        row.innerHTML = '<input type="checkbox" class="f-subject" data-id="' + subj.id + '" id="' + cbId + '"><label for="' + cbId + '"></label>';
+        row.querySelector("input").checked = !!subjectsChecked[subj.id];
+        row.querySelector("label").textContent = subj.label;
+        row.querySelector("input").addEventListener("change", (e) => { row.classList.toggle("done", e.target.checked); });
+        subjectsList.appendChild(row);
+      });
+    }
+    card.appendChild(subjectsList);
+
+    // Commentaires
+    const commentsTitle = document.createElement("p");
+    commentsTitle.className = "card-subtitle";
+    commentsTitle.textContent = "Commentaires";
+    card.appendChild(commentsTitle);
+
+    if (block.kind === "single") {
+      card.appendChild(fieldTextarea("Commentaires", "f-comments-general", data.commentsGeneral));
+    } else {
+      card.appendChild(fieldTextarea("Commentaires du salarié", "f-comments-employee", data.commentsEmployee));
+      card.appendChild(fieldTextarea("Mes commentaires (feedback)", "f-comments-manager", data.commentsManager));
+      const nextTitle = document.createElement("p");
+      nextTitle.className = "card-subtitle";
+      nextTitle.textContent = "Next steps";
+      card.appendChild(nextTitle);
+      card.appendChild(fieldTextarea("", "f-next-steps", data.nextSteps, true));
+    }
+
+    // Validé
+    const validatedRow = document.createElement("label");
+    validatedRow.className = "validated-row";
+    validatedRow.innerHTML = '<input type="checkbox" class="f-validated"><span>Marquer ce bloc comme validé</span>';
+    validatedRow.querySelector("input").checked = !!data.validated;
+    card.appendChild(validatedRow);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn-primary";
+    saveBtn.textContent = "Enregistrer";
+    card.appendChild(saveBtn);
+    const statusMsg = document.createElement("div");
+    statusMsg.className = "status-msg";
+    card.appendChild(statusMsg);
+
+    saveBtn.addEventListener("click", () => {
+      const subjectsCheckedOut = {};
+      card.querySelectorAll(".f-subject").forEach(cb => { subjectsCheckedOut[cb.dataset.id] = cb.checked; });
+      const payload = {
+        action: "saveBlock",
+        employeeId: employeeId,
+        blockType: block.key,
+        scheduledDate: dateWrap.querySelector("input").value,
+        confirmed: card.dataset.confirmed === "1" || !!data.confirmed,
+        calendarEventTitle: card.dataset.calendarEventTitle || data.calendarEventTitle || "",
+        calendarEventStart: card.dataset.calendarEventStart || data.calendarEventStart || "",
+        validated: validatedRow.querySelector("input").checked,
+        subjectsChecked: subjectsCheckedOut,
+      };
+      if (block.kind === "single") {
+        payload.commentsGeneral = card.querySelector(".f-comments-general").value;
+      } else {
+        payload.commentsEmployee = card.querySelector(".f-comments-employee").value;
+        payload.commentsManager = card.querySelector(".f-comments-manager").value;
+        payload.nextSteps = card.querySelector(".f-next-steps").value;
+      }
+      statusMsg.textContent = "Enregistrement…";
+      apiPost(payload).then(res => {
+        statusMsg.textContent = res.error ? res.error : "Enregistré.";
+        if (!res.error) {
+          blocksData[block.key] = Object.assign({}, data, payload, { subjectsChecked: subjectsCheckedOut });
+          titleRow.innerHTML = '<span>' + block.label + '</span>' + (payload.validated ? '<span class="validated-badge">Validé</span>' : "");
+        }
+        setTimeout(() => { statusMsg.textContent = ""; }, 2500);
+      }).catch(() => { statusMsg.textContent = "Connexion impossible."; });
+    });
+
+    return card;
+  }
+
+  function fieldTextarea(labelText, cls, value, noLabel) {
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    if (!noLabel && labelText) {
+      const lab = document.createElement("label");
+      lab.textContent = labelText;
+      wrap.appendChild(lab);
+    }
+    const ta = document.createElement("textarea");
+    ta.className = cls;
+    ta.value = value || "";
+    wrap.appendChild(ta);
+    return wrap;
+  }
+
+  function escapeHtml(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  init();
+
+  // ---------- Mot de passe ----------
+  (function () {
+    // Doit être identique au mot de passe de rh-suivi_roster_v1.html.
+    const PASSWORD = "CHANGE_MOI";
+    const pinScreen = document.getElementById("pinScreen");
+    const pinInput = document.getElementById("pinInput");
+    const pinSubmitBtn = document.getElementById("pinSubmitBtn");
+    const pinErrorText = document.getElementById("pinErrorText");
+
+    if (sessionStorage.getItem("rosario_rh_unlocked") === "1") {
+      pinScreen.classList.add("hidden");
+    } else {
+      pinInput.focus();
+    }
+    function tryUnlock() {
+      if (pinInput.value === PASSWORD) {
+        sessionStorage.setItem("rosario_rh_unlocked", "1");
+        pinScreen.classList.add("hidden");
+        pinErrorText.textContent = "";
+      } else {
+        pinErrorText.textContent = "Mot de passe incorrect.";
+        pinInput.value = "";
+        pinInput.focus();
+      }
+    }
+    pinSubmitBtn.addEventListener("click", tryUnlock);
+    pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); tryUnlock(); } });
+  })();
+</script>
+</body>
+</html>
