@@ -36,6 +36,16 @@
   }
   h1 { font-size: 24px; margin: 0 0 4px; }
   .subtitle { color: var(--muted); font-size: 14px; margin: 0; }
+  .demo-banner {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
 
   .card {
     background: var(--card);
@@ -55,7 +65,7 @@
 
   a.employee-card {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
     background: var(--card);
@@ -67,9 +77,18 @@
     color: var(--ink);
   }
   a.employee-card:hover { border-color: var(--accent); }
+  .employee-main { flex: 1; min-width: 0; }
   .employee-name { font-size: 15.5px; font-weight: 700; }
   .employee-role { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-  .employee-arrow { color: var(--muted); font-size: 18px; flex-shrink: 0; }
+  .employee-arrow { color: var(--muted); font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+  .employee-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+  .meta-item { font-size: 12px; color: var(--muted); }
+  .meta-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .meta-warning { background: var(--accent-soft); color: var(--accent); }
+  .meta-ok { background: #e4efe5; color: var(--success); }
+  .meta-neutral, .meta-unknown { background: #efece4; color: var(--muted); }
+  .employee-progress { font-size: 12px; color: var(--muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .employee-progress strong { color: var(--ink); font-weight: 600; }
 
   .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
   .error-state { color: var(--accent); }
@@ -164,6 +183,42 @@
 
   const employeeListEl = document.getElementById("employeeList");
 
+  // ---------- Période d'essai (identique au calcul de fiche.html, version condensée) ----------
+  const ESSAI_INITIAL = { "Employé": 2, "Agent de maîtrise": 3, "Cadre": 4 };
+  const ESSAI_MAX_RENEWED = { "Employé": 4, "Agent de maîtrise": 6, "Cadre": 8 };
+  function addMonths(date, months) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + months); return d; }
+  function fmtDateFr(d) { return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }); }
+
+  function essaiInfo(emp) {
+    if (emp.essaiValidee === "oui") return { label: "Période d'essai validée", cls: "meta-ok" };
+    if (emp.essaiValidee === "non") return { label: "Période d'essai non validée", cls: "meta-warning" };
+    if (!emp.dateRecrutement) return { label: "Date d'arrivée non renseignée", cls: "meta-unknown" };
+
+    const hireDate = new Date(emp.dateRecrutement + "T00:00:00");
+    const typeContrat = emp.typeContrat || "CDI";
+    const categorie = emp.categorie || "Employé";
+    let initialEnd, maxEnd;
+
+    if (typeContrat === "CDD") {
+      if (!emp.dateFinCDD) return { label: "Période d'essai : date de fin CDD manquante", cls: "meta-unknown" };
+      const cddEnd = new Date(emp.dateFinCDD + "T00:00:00");
+      const contractDays = Math.round((cddEnd - hireDate) / 86400000);
+      const essaiDays = contractDays <= 183 ? Math.min(Math.ceil(contractDays / 7), 14) : 30;
+      initialEnd = new Date(hireDate.getTime() + essaiDays * 86400000);
+      maxEnd = initialEnd;
+    } else {
+      const initMonths = ESSAI_INITIAL[categorie] || ESSAI_INITIAL["Employé"];
+      const maxMonths = ESSAI_MAX_RENEWED[categorie] || ESSAI_MAX_RENEWED["Employé"];
+      initialEnd = addMonths(hireDate, initMonths);
+      maxEnd = addMonths(hireDate, maxMonths);
+    }
+
+    const now = new Date();
+    if (now < initialEnd) return { label: "Essai en cours (fin " + fmtDateFr(initialEnd) + ")", cls: "meta-warning" };
+    if (now < maxEnd) return { label: "Essai terminé (renouvelable)", cls: "meta-neutral" };
+    return { label: "Essai terminé", cls: "meta-ok" };
+  }
+
   function loadRoster() {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_") === 0) {
       employeeListEl.innerHTML = '<div class="error-state">Apps Script pas encore configuré : colle l\'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
@@ -175,20 +230,73 @@
         if (data.error) { employeeListEl.innerHTML = '<div class="error-state">' + data.error + '</div>'; return; }
         if (!data.length) { employeeListEl.innerHTML = '<div class="empty-state">Aucun salarié dans le roster.</div>'; return; }
         employeeListEl.innerHTML = "";
-        data.forEach(emp => {
-          const a = document.createElement("a");
-          a.className = "employee-card";
-          a.href = "fiche.html?id=" + encodeURIComponent(emp.id);
-          a.innerHTML = '<div><div class="employee-name"></div><div class="employee-role"></div></div><span class="employee-arrow">›</span>';
-          a.querySelector(".employee-name").textContent = emp.nom;
-          a.querySelector(".employee-role").textContent = emp.poste || "—";
-          employeeListEl.appendChild(a);
-        });
+        data.forEach(emp => employeeListEl.appendChild(renderEmployeeCard(emp)));
       })
       .catch(() => {
         employeeListEl.innerHTML = '<div class="error-state">Connexion impossible à l\'Apps Script.</div>';
       });
   }
+
+  function renderEmployeeCard(emp) {
+    const a = document.createElement("a");
+    a.className = "employee-card";
+    a.href = "fiche.html?id=" + encodeURIComponent(emp.id);
+
+    const main = document.createElement("div");
+    main.className = "employee-main";
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "employee-name";
+    nameEl.textContent = emp.nom;
+    main.appendChild(nameEl);
+
+    const roleEl = document.createElement("div");
+    roleEl.className = "employee-role";
+    roleEl.textContent = emp.poste || "—";
+    main.appendChild(roleEl);
+
+    const metaRow = document.createElement("div");
+    metaRow.className = "employee-meta";
+
+    const dateSpan = document.createElement("span");
+    dateSpan.className = "meta-item";
+    dateSpan.textContent = emp.dateRecrutement
+      ? "Arrivée : " + fmtDateFr(new Date(emp.dateRecrutement + "T00:00:00"))
+      : "Date d'arrivée non renseignée";
+    metaRow.appendChild(dateSpan);
+
+    const essai = essaiInfo(emp);
+    const essaiSpan = document.createElement("span");
+    essaiSpan.className = "meta-badge " + essai.cls;
+    essaiSpan.textContent = essai.label;
+    metaRow.appendChild(essaiSpan);
+
+    main.appendChild(metaRow);
+
+    const progressEl = document.createElement("div");
+    progressEl.className = "employee-progress";
+    if (emp.lastValidatedBlock) {
+      progressEl.innerHTML = "Dernier point validé : <strong></strong>" + (emp.nextBlock ? " · Prochain : <strong></strong>" : "");
+      const strongs = progressEl.querySelectorAll("strong");
+      strongs[0].textContent = emp.lastValidatedBlock;
+      if (emp.nextBlock) strongs[1].textContent = emp.nextBlock;
+    } else {
+      progressEl.innerHTML = "Aucun point validé pour l'instant" + (emp.nextBlock ? " · À faire : <strong></strong>" : "");
+      const strong = progressEl.querySelector("strong");
+      if (strong) strong.textContent = emp.nextBlock;
+    }
+    main.appendChild(progressEl);
+
+    a.appendChild(main);
+
+    const arrow = document.createElement("span");
+    arrow.className = "employee-arrow";
+    arrow.textContent = "›";
+    a.appendChild(arrow);
+
+    return a;
+  }
+
   loadRoster();
 
   // ---------- PIN gate ----------
