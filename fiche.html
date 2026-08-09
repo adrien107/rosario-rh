@@ -368,7 +368,7 @@
   const ETAPE_STATUS_CLASS = { a_planifier: "status-neutral", planifie: "status-danger", fait: "status-ok" };
 
   const params = new URLSearchParams(window.location.search);
-  const employeeId = params.get("id") || "1";
+  let employeeId = params.get("id") || "";
 
   let employeeData = null;
   let blocksData = {};
@@ -378,6 +378,20 @@
       showError("Apps Script pas encore configuré : colle l'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.");
       return;
     }
+    if (!employeeId) {
+      // Ouvert sans ?id= (aperçu direct du fichier) : on prend le premier
+      // salarié du roster pour montrer quelque chose plutôt qu'une erreur.
+      apiGet("roster").then(list => {
+        if (!Array.isArray(list) || !list.length) { showError("Aucun salarié dans le roster."); return; }
+        employeeId = list[0].id;
+        loadEmployee();
+      }).catch(() => showError("Connexion impossible à l'Apps Script."));
+      return;
+    }
+    loadEmployee();
+  }
+
+  function loadEmployee() {
     apiGet("employee", { id: employeeId }).then(empRes => {
       if (empRes.error) { showError(empRes.error); return; }
       employeeData = empRes.employee;
@@ -584,7 +598,7 @@
     const r = computeEssai();
     if (!r) { el.innerHTML = '<p class="essai-placeholder">Renseigne la date de recrutement ci-dessus pour activer le calcul.</p>'; return; }
     if (r.error) { el.innerHTML = '<p class="essai-placeholder">' + r.error + '</p>'; return; }
-    const statusLabel = { not_started: "Pas encore commencée", en_cours": "En cours", renouvelable: "Terminée (renouvellement possible dans la limite légale)", terminee: "Terminée" }[r.status];
+    const statusLabel = { not_started: "Pas encore commencée", en_cours: "En cours", renouvelable: "Terminée (renouvellement possible dans la limite légale)", terminee: "Terminée" }[r.status];
     let html = "";
     html += row("Jour d'arrivée", fmtDateFr(r.hireDate));
     html += row("Ancienneté", r.presenceDays + " jour" + (r.presenceDays > 1 ? "s" : ""));
@@ -706,7 +720,7 @@
     const card = document.createElement("div");
     card.className = "card";
 
-    // / ----- Titre (cliquable pour replier/déplier) -----
+    // ----- Titre (cliquable pour replier/déplier) -----
     const titleRow = document.createElement("p");
     titleRow.className = "card-title collapsible";
     titleRow.innerHTML = '<span></span><span style="display:flex; align-items:center; gap:8px;"></span>';
