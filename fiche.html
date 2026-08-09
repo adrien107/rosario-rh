@@ -90,6 +90,20 @@
   .task label { font-size: 14px; font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--ink); line-height: 1.4; margin: 0; cursor: pointer; }
   .task.done label { color: var(--muted); text-decoration: line-through; }
   .subjects-empty { color: var(--muted); font-size: 12.5px; font-style: italic; }
+  .card-title.collapsible { cursor: pointer; user-select: none; }
+  .collapse-chevron { font-size: 12px; color: var(--muted); transition: transform 0.15s ease; flex-shrink: 0; }
+  .card.collapsed .collapse-chevron { transform: rotate(-90deg); }
+  .card.collapsed .block-body { display: none; }
+  .subsection-title { font-size: 13px; font-weight: 700; color: var(--ink); margin: 4px 0 10px; }
+  .subsection-divider { border-top: 1px solid var(--line); margin: 20px 0 16px; padding-top: 4px; }
+  .checklist-item { padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-row { display: flex; align-items: flex-start; gap: 10px; }
+  .checklist-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 1px; flex-shrink: 0; accent-color: var(--accent); }
+  .checklist-row label { font-size: 14px; font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--ink); line-height: 1.4; margin: 0; cursor: pointer; }
+  .checklist-item.done > .checklist-row > label { color: var(--muted); text-decoration: line-through; }
+  .checklist-children { margin-top: 4px; margin-left: 28px; }
+  .schedule-date-display { font-size: 15px; font-weight: 600; color: var(--ink); margin-top: 4px; }
 
   .validated-row { display: flex; align-items: center; gap: 8px; margin: 14px 0; cursor: pointer; }
   .validated-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--success); }
@@ -139,46 +153,76 @@
   <div id="content" style="display:none;">
 
     <div class="card">
-      <p class="card-title">Informations contrat</p>
-      <div class="identity-grid">
-        <div class="field-row">
-          <div class="field">
-            <label for="fCategorie">Catégorie</label>
-            <select id="fCategorie">
-              <option value="">— À définir —</option>
-              <option value="Employé">Employé</option>
-              <option value="Agent de maîtrise">Agent de maîtrise</option>
-              <option value="Cadre">Cadre</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="fTypeContrat">Type de contrat</label>
-            <select id="fTypeContrat">
-              <option value="">— À définir —</option>
-              <option value="CDI">CDI</option>
-              <option value="CDD">CDD</option>
-            </select>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="fDateRecrutement">Date de recrutement</label>
-            <input type="date" id="fDateRecrutement">
-          </div>
-          <div class="field" id="fDateFinCDDWrap" style="display:none;">
-            <label for="fDateFinCDD">Date de fin (CDD)</label>
-            <input type="date" id="fDateFinCDD">
-          </div>
-        </div>
+      <p class="card-title">Informations contrat<button type="button" class="btn-secondary btn-small" id="editEmployeeBtn" style="text-transform:none; letter-spacing:normal; font-weight:600;">Modifier</button></p>
+
+      <div id="employeeReadView">
+        <div class="essai-row"><span class="k">Catégorie</span><span class="v" id="roCategorie">—</span></div>
+        <div class="essai-row"><span class="k">Type de contrat</span><span class="v" id="roTypeContrat">—</span></div>
+        <div class="essai-row"><span class="k">Date de recrutement</span><span class="v" id="roDateRecrutement">—</span></div>
+        <div class="essai-row" id="roDateFinCDDRow" style="display:none;"><span class="k">Date de fin (CDD)</span><span class="v" id="roDateFinCDD">—</span></div>
       </div>
-      <button class="btn-primary btn-small" id="saveEmployeeBtn" style="margin-top:14px;">Enregistrer</button>
-      <div class="status-msg" id="employeeStatusMsg"></div>
+
+      <div id="employeeEditView" style="display:none;">
+        <div class="identity-grid">
+          <div class="field-row">
+            <div class="field">
+              <label for="fCategorie">Catégorie</label>
+              <select id="fCategorie">
+                <option value="">— À définir —</option>
+                <option value="Employé">Employé</option>
+                <option value="Agent de maîtrise">Agent de maîtrise</option>
+                <option value="Cadre">Cadre</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fTypeContrat">Type de contrat</label>
+              <select id="fTypeContrat">
+                <option value="">— À définir —</option>
+                <option value="CDI">CDI</option>
+                <option value="CDD">CDD</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fDateRecrutement">Date de recrutement</label>
+              <input type="date" id="fDateRecrutement">
+            </div>
+            <div class="field" id="fDateFinCDDWrap" style="display:none;">
+              <label for="fDateFinCDD">Date de fin (CDD)</label>
+              <input type="date" id="fDateFinCDD">
+            </div>
+          </div>
+        </div>
+        <button class="btn-primary btn-small" id="saveEmployeeBtn" style="margin-top:14px;">Enregistrer</button>
+        <button class="btn-secondary btn-small" id="cancelEmployeeBtn" style="margin-top:14px;">Annuler</button>
+        <div class="status-msg" id="employeeStatusMsg"></div>
+      </div>
     </div>
 
     <div class="card">
       <p class="card-title">Période d'essai</p>
       <div id="essaiContent"><p class="essai-placeholder">Renseigne la date de recrutement ci-dessus pour activer le calcul.</p></div>
       <p class="essai-note">Indicatif, basé sur le Code du travail (art. L.1221-19) et les délais de prévenance habituels en HCR — à vérifier avec un conseil juridique avant toute décision de rupture. Ne fait pas foi en cas de litige.</p>
+
+      <div class="essai-row" style="margin-top:14px;">
+        <span class="k">Période d'essai validée</span>
+        <span class="v" id="roEssaiValidee" style="display:flex; align-items:center; gap:10px;">
+          —<button type="button" class="btn-secondary btn-small" id="editEssaiBtn">Modifier</button>
+        </span>
+      </div>
+      <div id="essaiEditView" style="display:none; margin-top:10px;">
+        <div class="field">
+          <select id="fEssaiValidee">
+            <option value="">— À définir —</option>
+            <option value="oui">Oui</option>
+            <option value="non">Non</option>
+          </select>
+        </div>
+        <button class="btn-primary btn-small" id="saveEssaiBtn">Enregistrer</button>
+        <button class="btn-secondary btn-small" id="cancelEssaiBtn">Annuler</button>
+        <div class="status-msg" id="essaiStatusMsg"></div>
+      </div>
     </div>
 
     <div id="blocksContainer"></div>
@@ -189,14 +233,63 @@
 </div>
 
 <script>
-  // ---------- Config : à compléter après déploiement de l'Apps Script ----------
-  const APPS_SCRIPT_URL = "PASTE_APPS_SCRIPT_URL_HERE";
-  const ACCESS_KEY = "CHANGE_MOI_4040";
+  // ---------- Config ----------
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6bPoHUyJGy3hdifKdDCG2BKP3riT_tYkxKC7pWeTu4X7RfjMWF11Mm6efBbktwxU/exec";
+  const ACCESS_KEY = "Barcelona2025!";
+
+  function apiGet(action, extra) {
+    const qs = new URLSearchParams(Object.assign({ action: action, key: ACCESS_KEY }, extra || {}));
+    return fetch(APPS_SCRIPT_URL + "?" + qs.toString()).then(r => r.json());
+  }
+  function apiPost(body) {
+    return fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(Object.assign({ key: ACCESS_KEY }, body)) }).then(r => r.json());
+  }
+
+  // ---------- Checklists imbriquées ----------
+  const ONBOARDING_ITEMS = [
+    { id: "ob1", label: "Présentation à l'équipe" },
+    { id: "ob2", label: "Règlement intérieur" },
+    { id: "ob3", label: "Explication des règles de base", children: [
+      { id: "ob3a", label: 'Vocabulaire : "Oido", "Voy", "Chef"' },
+      { id: "ob3b", label: "Ne pas passer derrière le passe" },
+      { id: "ob3c", label: "Ne pas aller voir le chef, aller voir un Manager" },
+      { id: "ob3d", label: "Ne pas utiliser l'iPad" },
+    ]},
+    { id: "ob4", label: "Explication du métier de Runner", children: [
+      { id: "ob4a", label: "Apporter les plats / boissons" },
+      { id: "ob4b", label: "Débarrasser les verres ou assiettes vides (pas entre les différents moments du repas)" },
+    ]},
+    { id: "ob5", label: "Parcourir le Notion" },
+  ];
+
+  const FORMATION_ITEMS = [
+    { id: "f1", label: "Validation de la maîtrise du Notion" },
+    { id: "f2", label: "Formation LightSpeed", children: [
+      { id: "f2a", label: "Moyens mnémotechniques (carafe + pain, cuillères, etc.)" },
+      { id: "f2b", label: "Appel Suite" },
+      { id: "f2c", label: "Formule Déjeuner" },
+      { id: "f2d", label: "Techniques de vente", children: [
+        { id: "f2d1", label: "Vins" },
+        { id: "f2d2", label: "Café" },
+        { id: "f2d3", label: "Desserts" },
+      ]},
+    ]},
+    { id: "f3", label: "Encaissement", children: [
+      { id: "f3a", label: "Addition" },
+      { id: "f3b", label: "Pourboires" },
+      { id: "f3c", label: "Notes 5*" },
+    ]},
+    { id: "f4", label: "Organisation des prochains services", children: [
+      { id: "f4a", label: "Services du déjeuner (1 ou 2)" },
+      { id: "f4b", label: "Services légers du soir (dimanche, lundi, mardi) : 2 ou 3" },
+      { id: "f4c", label: "Services intenses du soir" },
+    ]},
+  ];
 
   // Doit rester identique à la liste BLOCKS du fichier .gs.
   const BLOCKS = [
-    { key: "onboarding", label: "On-boarding", kind: "single", showPrevious: null },
-    { key: "formation", label: "Formation & Retour 1ère semaine", kind: "double", showPrevious: null },
+    { key: "onboarding", label: "On-boarding", kind: "checklist", items: ONBOARDING_ITEMS, showPrevious: null },
+    { key: "formation", label: "Formation & Retour 1ère semaine", kind: "formation", items: FORMATION_ITEMS, showPrevious: null },
     { key: "month1", label: "Entretien 1 mois", kind: "double", showPrevious: "formation" },
     { key: "month2", label: "Entretien 2 mois", kind: "double", showPrevious: "month1" },
     { key: "month3", label: "Entretien 3 mois", kind: "double", showPrevious: "month2" },
@@ -217,31 +310,20 @@
   const ESSAI_MAX_RENEWED = { "Employé": 4, "Agent de maîtrise": 6, "Cadre": 8 };
 
   const params = new URLSearchParams(window.location.search);
-  const employeeId = params.get("id");
+  const employeeId = params.get("id") || "1";
 
   let employeeData = null;
   let blocksData = {};
-  let subjectsData = {};
-
-  function apiGet(action, extra) {
-    const qs = new URLSearchParams(Object.assign({ action: action, key: ACCESS_KEY }, extra || {}));
-    return fetch(APPS_SCRIPT_URL + "?" + qs.toString()).then(r => r.json());
-  }
-  function apiPost(body) {
-    return fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(Object.assign({ key: ACCESS_KEY }, body)) }).then(r => r.json());
-  }
 
   function init() {
-    if (!employeeId) { showError("Aucun salarié sélectionné — reviens à la liste."); return; }
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_") === 0) {
       showError("Apps Script pas encore configuré : colle l'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.");
       return;
     }
-    Promise.all([apiGet("employee", { id: employeeId }), apiGet("subjects")]).then(([empRes, subjRes]) => {
+    apiGet("employee", { id: employeeId }).then(empRes => {
       if (empRes.error) { showError(empRes.error); return; }
       employeeData = empRes.employee;
       blocksData = empRes.blocks || {};
-      subjectsData = subjRes || {};
       render();
     }).catch(() => showError("Connexion impossible à l'Apps Script."));
   }
@@ -261,13 +343,16 @@
     document.getElementById("fTypeContrat").value = employeeData.typeContrat || "";
     document.getElementById("fDateRecrutement").value = employeeData.dateRecrutement || "";
     document.getElementById("fDateFinCDD").value = employeeData.dateFinCDD || "";
+    document.getElementById("fEssaiValidee").value = employeeData.essaiValidee || "";
     toggleCDDField();
+    renderEmployeeReadView();
+    renderEssaiValideeReadView();
 
     renderEssai();
     renderBlocks();
   }
 
-  // ---------- Informations contrat ----------
+  // ---------- Informations contrat (lecture seule + Modifier) ----------
   function toggleCDDField() {
     document.getElementById("fDateFinCDDWrap").style.display = (document.getElementById("fTypeContrat").value === "CDD") ? "block" : "none";
   }
@@ -276,24 +361,84 @@
   document.getElementById("fDateRecrutement").addEventListener("change", renderEssai);
   document.getElementById("fDateFinCDD").addEventListener("change", renderEssai);
 
+  function renderEmployeeReadView() {
+    document.getElementById("roCategorie").textContent = employeeData.categorie || "— À définir —";
+    document.getElementById("roTypeContrat").textContent = employeeData.typeContrat || "— À définir —";
+    document.getElementById("roDateRecrutement").textContent = employeeData.dateRecrutement ? fmtDateFr(new Date(employeeData.dateRecrutement + "T00:00:00")) : "— À définir —";
+    const cddRow = document.getElementById("roDateFinCDDRow");
+    if (employeeData.typeContrat === "CDD") {
+      cddRow.style.display = "flex";
+      document.getElementById("roDateFinCDD").textContent = employeeData.dateFinCDD ? fmtDateFr(new Date(employeeData.dateFinCDD + "T00:00:00")) : "— À définir —";
+    } else {
+      cddRow.style.display = "none";
+    }
+  }
+
+  document.getElementById("editEmployeeBtn").addEventListener("click", () => {
+    document.getElementById("employeeReadView").style.display = "none";
+    document.getElementById("employeeEditView").style.display = "block";
+  });
+  document.getElementById("cancelEmployeeBtn").addEventListener("click", () => {
+    document.getElementById("fCategorie").value = employeeData.categorie || "";
+    document.getElementById("fTypeContrat").value = employeeData.typeContrat || "";
+    document.getElementById("fDateRecrutement").value = employeeData.dateRecrutement || "";
+    document.getElementById("fDateFinCDD").value = employeeData.dateFinCDD || "";
+    toggleCDDField();
+    document.getElementById("employeeEditView").style.display = "none";
+    document.getElementById("employeeReadView").style.display = "block";
+  });
+
   document.getElementById("saveEmployeeBtn").addEventListener("click", () => {
     const msg = document.getElementById("employeeStatusMsg");
-    msg.textContent = "Enregistrement…";
-    apiPost({
+    const payload = {
       action: "updateEmployee",
       id: employeeId,
       Categorie: document.getElementById("fCategorie").value,
       TypeContrat: document.getElementById("fTypeContrat").value,
       DateRecrutement: document.getElementById("fDateRecrutement").value,
       DateFinCDD: document.getElementById("fDateFinCDD").value,
-    }).then(res => {
-      msg.textContent = res.error ? res.error : "Enregistré.";
-      if (!res.error) {
-        employeeData.categorie = document.getElementById("fCategorie").value;
-        employeeData.typeContrat = document.getElementById("fTypeContrat").value;
-        employeeData.dateRecrutement = document.getElementById("fDateRecrutement").value;
-        employeeData.dateFinCDD = document.getElementById("fDateFinCDD").value;
-      }
+    };
+    msg.textContent = "Enregistrement…";
+    apiPost(payload).then(res => {
+      if (res.error) { msg.textContent = res.error; return; }
+      employeeData.categorie = payload.Categorie;
+      employeeData.typeContrat = payload.TypeContrat;
+      employeeData.dateRecrutement = payload.DateRecrutement;
+      employeeData.dateFinCDD = payload.DateFinCDD;
+      renderEmployeeReadView();
+      renderEssai();
+      document.getElementById("employeeEditView").style.display = "none";
+      document.getElementById("employeeReadView").style.display = "block";
+      msg.textContent = "Enregistré.";
+      setTimeout(() => { msg.textContent = ""; }, 2500);
+    }).catch(() => { msg.textContent = "Connexion impossible."; });
+  });
+
+  // ---------- Période d'essai validée (lecture seule + Modifier) ----------
+  function renderEssaiValideeReadView() {
+    const el = document.getElementById("roEssaiValidee");
+    const label = employeeData.essaiValidee === "oui" ? "Oui" : employeeData.essaiValidee === "non" ? "Non" : "— À définir —";
+    el.childNodes[0].textContent = label;
+  }
+
+  document.getElementById("editEssaiBtn").addEventListener("click", () => {
+    document.getElementById("essaiEditView").style.display = "block";
+  });
+  document.getElementById("cancelEssaiBtn").addEventListener("click", () => {
+    document.getElementById("fEssaiValidee").value = employeeData.essaiValidee || "";
+    document.getElementById("essaiEditView").style.display = "none";
+  });
+
+  document.getElementById("saveEssaiBtn").addEventListener("click", () => {
+    const msg = document.getElementById("essaiStatusMsg");
+    const val = document.getElementById("fEssaiValidee").value;
+    msg.textContent = "Enregistrement…";
+    apiPost({ action: "updateEmployee", id: employeeId, EssaiValidee: val }).then(res => {
+      if (res.error) { msg.textContent = res.error; return; }
+      employeeData.essaiValidee = val;
+      renderEssaiValideeReadView();
+      document.getElementById("essaiEditView").style.display = "none";
+      msg.textContent = "Enregistré.";
       setTimeout(() => { msg.textContent = ""; }, 2500);
     }).catch(() => { msg.textContent = "Connexion impossible."; });
   });
@@ -347,6 +492,7 @@
     if (r.error) { el.innerHTML = '<p class="essai-placeholder">' + r.error + '</p>'; return; }
     const statusLabel = { not_started: "Pas encore commencée", en_cours: "En cours", renouvelable: "Terminée (renouvellement possible dans la limite légale)", terminee: "Terminée" }[r.status];
     let html = "";
+    html += row("Jour d'arrivée", fmtDateFr(r.hireDate));
     html += row("Ancienneté", r.presenceDays + " jour" + (r.presenceDays > 1 ? "s" : ""));
     html += row("Statut", statusLabel);
     html += row("Fin de période d'essai (sans renouvellement)", fmtDateFr(r.initialEnd));
@@ -365,167 +511,72 @@
     BLOCKS.forEach(block => container.appendChild(renderBlockCard(block)));
   }
 
-  function renderBlockCard(block) {
-    const data = blocksData[block.key] || {};
-    const subjects = subjectsData[block.key] || [];
-    const subjectsChecked = data.subjectsChecked || {};
+  function escapeHtml(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
-    const card = document.createElement("div");
-    card.className = "card";
-
-    const titleRow = document.createElement("p");
-    titleRow.className = "card-title";
-    titleRow.innerHTML = '<span>' + block.label + '</span>' + (data.validated ? '<span class="validated-badge">Validé</span>' : "");
-    card.appendChild(titleRow);
-
-    // Rappel du bloc précédent
-    if (block.showPrevious) {
-      const prevBlock = BLOCK_BY_KEY[block.showPrevious];
-      const prevData = blocksData[block.showPrevious] || {};
-      const prevBox = document.createElement("div");
-      prevBox.className = "prev-box";
-      let prevHtml = '<div class="prev-label">Rappel — ' + prevBlock.label + '</div>';
-      const hasComments = prevData.commentsGeneral || prevData.commentsEmployee || prevData.commentsManager || prevData.nextSteps;
-      if (!hasComments) {
-        prevHtml += '<p class="prev-empty">Pas encore de commentaires sur ce bloc.</p>';
-      } else {
-        if (prevData.commentsGeneral) prevHtml += "<p>" + escapeHtml(prevData.commentsGeneral) + "</p>";
-        if (prevData.commentsEmployee) prevHtml += "<p><strong>Salarié :</strong> " + escapeHtml(prevData.commentsEmployee) + "</p>";
-        if (prevData.commentsManager) prevHtml += "<p><strong>Manager :</strong> " + escapeHtml(prevData.commentsManager) + "</p>";
-        if (prevData.nextSteps) prevHtml += "<p><strong>Next steps :</strong> " + escapeHtml(prevData.nextSteps) + "</p>";
-      }
-      prevBox.innerHTML = prevHtml;
-      card.appendChild(prevBox);
+  // Remonte la chaîne showPrevious jusqu'à formation, dans l'ordre chronologique (le plus ancien en premier).
+  function getHistoryChain(block) {
+    const chain = [];
+    let cursor = block.showPrevious;
+    while (cursor) {
+      chain.unshift(cursor);
+      cursor = BLOCK_BY_KEY[cursor].showPrevious;
     }
+    return chain;
+  }
 
-    // Date prévue + vérification agenda
-    const scheduleRow = document.createElement("div");
-    scheduleRow.className = "schedule-row";
-    const dateWrap = document.createElement("div");
-    dateWrap.innerHTML = '<label>Date prévue</label><input type="date" class="f-scheduled-date">';
-    dateWrap.querySelector("input").value = data.scheduledDate ? data.scheduledDate.slice(0, 10) : "";
-    scheduleRow.appendChild(dateWrap);
-    const checkBtn = document.createElement("button");
-    checkBtn.className = "btn-secondary btn-small";
-    checkBtn.textContent = "Vérifier l'agenda";
-    scheduleRow.appendChild(checkBtn);
-    card.appendChild(scheduleRow);
-
-    const confirmStatus = document.createElement("div");
-    confirmStatus.className = "confirm-status " + (data.confirmed ? "found" : "notfound");
-    confirmStatus.textContent = data.confirmed
-      ? "✓ Calé — \"" + data.calendarEventTitle + "\""
-      : "Pas encore confirmé dans l'agenda.";
-    card.appendChild(confirmStatus);
-
-    checkBtn.addEventListener("click", () => {
-      const dateVal = dateWrap.querySelector("input").value;
-      if (!dateVal) { confirmStatus.textContent = "Choisis d'abord une date."; return; }
-      confirmStatus.textContent = "Vérification…";
-      apiGet("checkCalendar", { employeeName: employeeData.nom, blockLabel: block.label, date: dateVal }).then(res => {
-        if (res.found) {
-          confirmStatus.className = "confirm-status found";
-          confirmStatus.textContent = "✓ Calé — \"" + res.title + "\"";
-          card.dataset.confirmed = "1";
-          card.dataset.calendarEventTitle = res.title;
-          card.dataset.calendarEventStart = res.start;
-        } else {
-          confirmStatus.className = "confirm-status notfound";
-          confirmStatus.textContent = "Aucun événement trouvé ce jour-là avec \"" + employeeData.nom + "\" dans le titre.";
-          card.dataset.confirmed = "";
-        }
-      }).catch(() => { confirmStatus.textContent = "Connexion impossible."; });
+  // Évolution : liste chronologique des points positifs / axes d'amélioration des blocs précédents,
+  // pour suivre la progression du salarié entretien après entretien.
+  function buildEvolutionBox(block) {
+    const chain = getHistoryChain(block);
+    if (!chain.length) return null;
+    const wrap = document.createElement("div");
+    wrap.className = "prev-box";
+    let html = '<div class="prev-label">Évolution — historique des entretiens</div>';
+    let hasAny = false;
+    chain.forEach(key => {
+      const b = BLOCK_BY_KEY[key];
+      const d = blocksData[key] || {};
+      const label = key === "formation" ? "Retour 1ère semaine" : b.label;
+      const dateStr = d.interviewDate ? fmtDateFr(new Date(d.interviewDate + "T00:00:00")) : null;
+      const hasContent = d.pointsPositifs || d.axesAmelioration;
+      if (!hasContent) return;
+      hasAny = true;
+      html += '<p style="margin-top:10px;"><strong>' + escapeHtml(label) + (dateStr ? " — " + dateStr : "") + '</strong></p>';
+      if (d.pointsPositifs) html += '<p>✓ ' + escapeHtml(d.pointsPositifs) + '</p>';
+      if (d.axesAmelioration) html += '<p>△ ' + escapeHtml(d.axesAmelioration) + '</p>';
     });
+    if (!hasAny) html += "<p class=\"prev-empty\">Pas encore de points positifs ou d'axes d'amélioration enregistrés.</p>";
+    wrap.innerHTML = html;
+    return wrap;
+  }
 
-    // Sujets à aborder
-    const subjectsTitle = document.createElement("p");
-    subjectsTitle.className = "card-subtitle";
-    subjectsTitle.textContent = "Sujets à aborder";
-    card.appendChild(subjectsTitle);
-    const subjectsList = document.createElement("div");
-    subjectsList.className = "subjects-list";
-    if (!subjects.length) {
-      subjectsList.innerHTML = '<p class="subjects-empty">Aucun sujet configuré pour ce bloc — ajoute-les dans l\'onglet "Subjects" du Google Sheet (colonne BlockType = "' + block.key + '").</p>';
-    } else {
-      subjects.forEach(subj => {
-        const row = document.createElement("div");
-        row.className = "task" + (subjectsChecked[subj.id] ? " done" : "");
-        const cbId = "subj-" + block.key + "-" + subj.id;
-        row.innerHTML = '<input type="checkbox" class="f-subject" data-id="' + subj.id + '" id="' + cbId + '"><label for="' + cbId + '"></label>';
-        row.querySelector("input").checked = !!subjectsChecked[subj.id];
-        row.querySelector("label").textContent = subj.label;
-        row.querySelector("input").addEventListener("change", (e) => { row.classList.toggle("done", e.target.checked); });
-        subjectsList.appendChild(row);
+  // Rendu récursif d'une checklist imbriquée (jusqu'à 3 niveaux)
+  function renderChecklist(items, checkedMap, onToggle) {
+    const wrap = document.createElement("div");
+    items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "checklist-item" + (checkedMap[item.id] ? " done" : "");
+      const rowInner = document.createElement("div");
+      rowInner.className = "checklist-row";
+      const cbId = "chk-" + item.id;
+      rowInner.innerHTML = '<input type="checkbox" data-id="' + item.id + '" id="' + cbId + '"><label for="' + cbId + '"></label>';
+      rowInner.querySelector("input").checked = !!checkedMap[item.id];
+      rowInner.querySelector("label").textContent = item.label;
+      rowInner.querySelector("input").addEventListener("change", (e) => {
+        checkedMap[item.id] = e.target.checked;
+        row.classList.toggle("done", e.target.checked);
+        onToggle();
       });
-    }
-    card.appendChild(subjectsList);
-
-    // Commentaires
-    const commentsTitle = document.createElement("p");
-    commentsTitle.className = "card-subtitle";
-    commentsTitle.textContent = "Commentaires";
-    card.appendChild(commentsTitle);
-
-    if (block.kind === "single") {
-      card.appendChild(fieldTextarea("Commentaires", "f-comments-general", data.commentsGeneral));
-    } else {
-      card.appendChild(fieldTextarea("Commentaires du salarié", "f-comments-employee", data.commentsEmployee));
-      card.appendChild(fieldTextarea("Mes commentaires (feedback)", "f-comments-manager", data.commentsManager));
-      const nextTitle = document.createElement("p");
-      nextTitle.className = "card-subtitle";
-      nextTitle.textContent = "Next steps";
-      card.appendChild(nextTitle);
-      card.appendChild(fieldTextarea("", "f-next-steps", data.nextSteps, true));
-    }
-
-    // Validé
-    const validatedRow = document.createElement("label");
-    validatedRow.className = "validated-row";
-    validatedRow.innerHTML = '<input type="checkbox" class="f-validated"><span>Marquer ce bloc comme validé</span>';
-    validatedRow.querySelector("input").checked = !!data.validated;
-    card.appendChild(validatedRow);
-
-    const saveBtn = document.createElement("button");
-    saveBtn.className = "btn-primary";
-    saveBtn.textContent = "Enregistrer";
-    card.appendChild(saveBtn);
-    const statusMsg = document.createElement("div");
-    statusMsg.className = "status-msg";
-    card.appendChild(statusMsg);
-
-    saveBtn.addEventListener("click", () => {
-      const subjectsCheckedOut = {};
-      card.querySelectorAll(".f-subject").forEach(cb => { subjectsCheckedOut[cb.dataset.id] = cb.checked; });
-      const payload = {
-        action: "saveBlock",
-        employeeId: employeeId,
-        blockType: block.key,
-        scheduledDate: dateWrap.querySelector("input").value,
-        confirmed: card.dataset.confirmed === "1" || !!data.confirmed,
-        calendarEventTitle: card.dataset.calendarEventTitle || data.calendarEventTitle || "",
-        calendarEventStart: card.dataset.calendarEventStart || data.calendarEventStart || "",
-        validated: validatedRow.querySelector("input").checked,
-        subjectsChecked: subjectsCheckedOut,
-      };
-      if (block.kind === "single") {
-        payload.commentsGeneral = card.querySelector(".f-comments-general").value;
-      } else {
-        payload.commentsEmployee = card.querySelector(".f-comments-employee").value;
-        payload.commentsManager = card.querySelector(".f-comments-manager").value;
-        payload.nextSteps = card.querySelector(".f-next-steps").value;
+      row.appendChild(rowInner);
+      if (item.children && item.children.length) {
+        const childrenWrap = document.createElement("div");
+        childrenWrap.className = "checklist-children";
+        childrenWrap.appendChild(renderChecklist(item.children, checkedMap, onToggle));
+        row.appendChild(childrenWrap);
       }
-      statusMsg.textContent = "Enregistrement…";
-      apiPost(payload).then(res => {
-        statusMsg.textContent = res.error ? res.error : "Enregistré.";
-        if (!res.error) {
-          blocksData[block.key] = Object.assign({}, data, payload, { subjectsChecked: subjectsCheckedOut });
-          titleRow.innerHTML = '<span>' + block.label + '</span>' + (payload.validated ? '<span class="validated-badge">Validé</span>' : "");
-        }
-        setTimeout(() => { statusMsg.textContent = ""; }, 2500);
-      }).catch(() => { statusMsg.textContent = "Connexion impossible."; });
+      wrap.appendChild(row);
     });
-
-    return card;
+    return wrap;
   }
 
   function fieldTextarea(labelText, cls, value, noLabel) {
@@ -543,13 +594,169 @@
     return wrap;
   }
 
-  function escapeHtml(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  // Bloc "Retour 1ère semaine" / "Entretien" : commentaires salarié + points positifs + axes d'amélioration + next steps
+  function appendInterviewFields(bodyWrap, data) {
+    bodyWrap.appendChild(fieldTextarea("Commentaires du salarié", "f-comments-employee", data.commentsEmployee));
+    bodyWrap.appendChild(fieldTextarea("Points positifs", "f-points-positifs", data.pointsPositifs));
+    bodyWrap.appendChild(fieldTextarea("Axes d'amélioration", "f-axes-amelioration", data.axesAmelioration));
+    const nextTitle = document.createElement("p");
+    nextTitle.className = "card-subtitle";
+    nextTitle.textContent = "Next steps";
+    bodyWrap.appendChild(nextTitle);
+    bodyWrap.appendChild(fieldTextarea("", "f-next-steps", data.nextSteps, true));
+  }
+
+  function renderBlockCard(block) {
+    const data = blocksData[block.key] || {};
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    // ----- Titre (cliquable pour replier/déplier) -----
+    const titleRow = document.createElement("p");
+    titleRow.className = "card-title collapsible";
+    titleRow.innerHTML = '<span></span><span style="display:flex; align-items:center; gap:8px;"></span>';
+    titleRow.querySelector("span").textContent = block.label;
+    const rightWrap = titleRow.querySelectorAll("span")[1];
+    if (data.validated) {
+      const badge = document.createElement("span");
+      badge.className = "validated-badge";
+      badge.textContent = "Validé";
+      rightWrap.appendChild(badge);
+    }
+    const chevron = document.createElement("span");
+    chevron.className = "collapse-chevron";
+    chevron.textContent = "▾";
+    rightWrap.appendChild(chevron);
+    card.appendChild(titleRow);
+
+    const bodyWrap = document.createElement("div");
+    bodyWrap.className = "block-body";
+    card.appendChild(bodyWrap);
+
+    titleRow.addEventListener("click", () => { card.classList.toggle("collapsed"); });
+
+    // ----- Évolution (historique des entretiens précédents) -----
+    if (block.kind === "double") {
+      const evoBox = buildEvolutionBox(block);
+      if (evoBox) bodyWrap.appendChild(evoBox);
+    }
+
+    // ----- Date de l'entretien -----
+    const scheduleRow = document.createElement("div");
+    scheduleRow.className = "schedule-row";
+    const dateWrap = document.createElement("div");
+    dateWrap.innerHTML = "<label>Date de l'entretien</label><input type=\"date\" class=\"f-interview-date\">";
+    const dateInput = dateWrap.querySelector("input");
+    dateInput.value = data.interviewDate || "";
+    scheduleRow.appendChild(dateWrap);
+    bodyWrap.appendChild(scheduleRow);
+
+    const dateReadout = document.createElement("div");
+    dateReadout.className = "schedule-date-display";
+    bodyWrap.appendChild(dateReadout);
+
+    function refreshDateUi() {
+      const val = dateInput.value;
+      dateReadout.textContent = val ? fmtDateFr(new Date(val + "T00:00:00")) : "";
+    }
+    refreshDateUi();
+    dateInput.addEventListener("change", refreshDateUi);
+
+    // ----- Corps spécifique selon le type de bloc -----
+    let checklistCheckedOnboarding = null;
+    let checklistCheckedFormation = null;
+
+    if (block.kind === "checklist") {
+      checklistCheckedOnboarding = Object.assign({}, data.checklistChecked || {});
+      bodyWrap.appendChild(renderChecklist(block.items, checklistCheckedOnboarding, () => {}));
+    } else if (block.kind === "formation") {
+      const retourTitle = document.createElement("p");
+      retourTitle.className = "subsection-title";
+      retourTitle.textContent = "Retour 1ère semaine";
+      bodyWrap.appendChild(retourTitle);
+      appendInterviewFields(bodyWrap, data);
+
+      const divider = document.createElement("div");
+      divider.className = "subsection-divider";
+      const formationTitle = document.createElement("p");
+      formationTitle.className = "subsection-title";
+      formationTitle.style.marginTop = "0";
+      formationTitle.textContent = "Formation";
+      divider.appendChild(formationTitle);
+      bodyWrap.appendChild(divider);
+
+      checklistCheckedFormation = Object.assign({}, data.checklistChecked || {});
+      bodyWrap.appendChild(renderChecklist(block.items, checklistCheckedFormation, () => {}));
+    } else {
+      appendInterviewFields(bodyWrap, data);
+    }
+
+    // ----- Validé -----
+    const validatedRow = document.createElement("label");
+    validatedRow.className = "validated-row";
+    validatedRow.innerHTML = '<input type="checkbox" class="f-validated"><span>Marquer ce bloc comme validé</span>';
+    validatedRow.querySelector("input").checked = !!data.validated;
+    validatedRow.querySelector("input").addEventListener("change", (e) => {
+      if (e.target.checked) {
+        setTimeout(() => { card.classList.add("collapsed"); }, 200);
+      }
+    });
+    bodyWrap.appendChild(validatedRow);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn-primary";
+    saveBtn.textContent = "Enregistrer";
+    bodyWrap.appendChild(saveBtn);
+    const statusMsg = document.createElement("div");
+    statusMsg.className = "status-msg";
+    bodyWrap.appendChild(statusMsg);
+
+    saveBtn.addEventListener("click", () => {
+      const payload = {
+        interviewDate: dateInput.value,
+        validated: validatedRow.querySelector("input").checked,
+      };
+      if (block.kind === "checklist") {
+        payload.checklistChecked = checklistCheckedOnboarding;
+      } else if (block.kind === "formation") {
+        payload.checklistChecked = checklistCheckedFormation;
+        payload.commentsEmployee = bodyWrap.querySelector(".f-comments-employee").value;
+        payload.pointsPositifs = bodyWrap.querySelector(".f-points-positifs").value;
+        payload.axesAmelioration = bodyWrap.querySelector(".f-axes-amelioration").value;
+        payload.nextSteps = bodyWrap.querySelector(".f-next-steps").value;
+      } else {
+        payload.commentsEmployee = bodyWrap.querySelector(".f-comments-employee").value;
+        payload.pointsPositifs = bodyWrap.querySelector(".f-points-positifs").value;
+        payload.axesAmelioration = bodyWrap.querySelector(".f-axes-amelioration").value;
+        payload.nextSteps = bodyWrap.querySelector(".f-next-steps").value;
+      }
+      statusMsg.textContent = "Enregistrement…";
+      apiPost(Object.assign({ action: "saveBlock", employeeId: employeeId, blockType: block.key }, payload)).then(res => {
+        if (res.error) { statusMsg.textContent = res.error; return; }
+        blocksData[block.key] = Object.assign({}, data, payload);
+        const badgeWrap = titleRow.querySelectorAll("span")[1];
+        badgeWrap.querySelectorAll(".validated-badge").forEach(b => b.remove());
+        if (payload.validated) {
+          const badge = document.createElement("span");
+          badge.className = "validated-badge";
+          badge.textContent = "Validé";
+          badgeWrap.insertBefore(badge, badgeWrap.firstChild);
+          card.classList.add("collapsed");
+        }
+        statusMsg.textContent = "Enregistré.";
+        setTimeout(() => { statusMsg.textContent = ""; }, 2500);
+      }).catch(() => { statusMsg.textContent = "Connexion impossible."; });
+    });
+
+    return card;
+  }
 
   init();
 
+
   // ---------- Mot de passe ----------
   (function () {
-    // Doit être identique au mot de passe de rh-suivi_roster_v1.html.
     const PASSWORD = "Barcelona2025!";
     const pinScreen = document.getElementById("pinScreen");
     const pinInput = document.getElementById("pinInput");
