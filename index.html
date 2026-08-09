@@ -167,8 +167,15 @@
   </header>
 
   <div class="card">
-    <p class="card-title">Salariés</p>
-    <div id="employeeList">
+    <p class="card-title">Salle</p>
+    <div id="employeeListSalle">
+      <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Bar</p>
+    <div id="employeeListBar">
       <div class="empty-state">Chargement…</div>
     </div>
   </div>
@@ -181,7 +188,12 @@
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6bPoHUyJGy3hdifKdDCG2BKP3riT_tYkxKC7pWeTu4X7RfjMWF11Mm6efBbktwxU/exec";
   const ACCESS_KEY = "Barcelona2025!";
 
-  const employeeListEl = document.getElementById("employeeList");
+  const employeeListSalleEl = document.getElementById("employeeListSalle");
+  const employeeListBarEl = document.getElementById("employeeListBar");
+
+  // Postes considérés comme "Bar" ; tout le reste (Chef de rang, Runner, Manager, etc.) = "Salle".
+  const BAR_POSTES = ["Barman", "Barmaid", "Bartender"];
+  function isBar(emp) { return BAR_POSTES.indexOf(emp.poste) !== -1; }
 
   // ---------- Période d'essai (identique au calcul de fiche.html, version condensée) ----------
   const ESSAI_INITIAL = { "Employé": 2, "Agent de maîtrise": 3, "Cadre": 4 };
@@ -214,26 +226,76 @@
     }
 
     const now = new Date();
-    if (now < initialEnd) return { label: "Essai en cours (fin " + fmtDateFr(initialEnd) + ")", cls: "meta-warning" };
-    if (now < maxEnd) return { label: "Essai terminé (renouvelable)", cls: "meta-neutral" };
-    return { label: "Essai terminé", cls: "meta-ok" };
+    if (now < initialEnd) return { label: "Période d'essai en cours (fin " + fmtDateFr(initialEnd) + ")", cls: "meta-warning" };
+    if (now < maxEnd) return { label: "Période d'essai terminée (renouvelable)", cls: "meta-neutral" };
+    return { label: "Période d'essai terminée", cls: "meta-ok" };
+  }
+
+  // Provisoire côté client : tant que le nouveau backend .gs (qui filtre déjà
+  // Hiring-Front côté serveur) n'est pas redéployé sur Apps Script, on exclut
+  // ici les salariés cuisine / Hiring-Back pour que l'aperçu soit correct.
+  const NON_HIRING_FRONT_IDS = ["elena-misiego", "nicola-baron", "lucia-curiel", "ivan", "kartika", "sofia", "godwin", "baby-john"];
+
+  // Salariés qui ne sont pas "Current" + "Hired" dans l'onglet Hiring-Front
+  // (Léa Benoît, Yohan Doudié et Sarah Auber-Yvars y sont marqués "Old" ;
+  // Mathurin Jeannes n'y apparaît pas). Pablo Acevedo et Lucas Rohan sont
+  // gardés à la demande d'Adrien même s'ils ne matchent pas Current+Hired.
+  const NOT_CURRENT_HIRED_IDS = ["lea-benoit", "yohan-doudie", "sarah-auber-yvars", "mathurin-jeannes"];
+
+  // Dates de recrutement absentes du roster côté Sheet, données par Adrien.
+  // Provisoire côté client tant que la Sheet elle-même n'a pas ces cellules
+  // remplies (colonne DateRecrutement, onglet Roster).
+  const DATE_OVERRIDES = { "lucas-rohan": "2026-08-19", "pablo-acevedo": "2026-07-25" };
+  function applyDateOverrides(list) {
+    list.forEach(emp => { if (!emp.dateRecrutement && DATE_OVERRIDES[emp.id]) emp.dateRecrutement = DATE_OVERRIDES[emp.id]; });
+    return list;
+  }
+
+  function sortByAnciennete(list) {
+    list.sort((a, b) => {
+      if (!a.dateRecrutement && !b.dateRecrutement) return 0;
+      if (!a.dateRecrutement) return 1;
+      if (!b.dateRecrutement) return -1;
+      return new Date(a.dateRecrutement) - new Date(b.dateRecrutement);
+    });
+    return list;
+  }
+
+  function renderList(el, list) {
+    if (!list.length) { el.innerHTML = '<div class="empty-state">Aucun salarié.</div>'; return; }
+    el.innerHTML = "";
+    list.forEach(emp => el.appendChild(renderEmployeeCard(emp)));
   }
 
   function loadRoster() {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_") === 0) {
-      employeeListEl.innerHTML = '<div class="error-state">Apps Script pas encore configuré : colle l\'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
+      const msg = '<div class="error-state">Apps Script pas encore configuré : colle l\'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
+      employeeListSalleEl.innerHTML = msg;
+      employeeListBarEl.innerHTML = msg;
       return;
     }
     fetch(APPS_SCRIPT_URL + "?action=roster&key=" + encodeURIComponent(ACCESS_KEY))
       .then(r => r.json())
       .then(data => {
-        if (data.error) { employeeListEl.innerHTML = '<div class="error-state">' + data.error + '</div>'; return; }
-        if (!data.length) { employeeListEl.innerHTML = '<div class="empty-state">Aucun salarié dans le roster.</div>'; return; }
-        employeeListEl.innerHTML = "";
-        data.forEach(emp => employeeListEl.appendChild(renderEmployeeCard(emp)));
+        if (data.error) {
+          employeeListSalleEl.innerHTML = '<div class="error-state">' + data.error + '</div>';
+          employeeListBarEl.innerHTML = '<div class="error-state">' + data.error + '</div>';
+          return;
+        }
+
+        data = data.filter(emp => NON_HIRING_FRONT_IDS.indexOf(emp.id) === -1 && NOT_CURRENT_HIRED_IDS.indexOf(emp.id) === -1);
+        data = applyDateOverrides(data);
+
+        const salle = sortByAnciennete(data.filter(emp => !isBar(emp)));
+        const bar = sortByAnciennete(data.filter(emp => isBar(emp)));
+
+        renderList(employeeListSalleEl, salle);
+        renderList(employeeListBarEl, bar);
       })
       .catch(() => {
-        employeeListEl.innerHTML = '<div class="error-state">Connexion impossible à l\'Apps Script.</div>';
+        const msg = '<div class="error-state">Connexion impossible à l\'Apps Script.</div>';
+        employeeListSalleEl.innerHTML = msg;
+        employeeListBarEl.innerHTML = msg;
       });
   }
 
