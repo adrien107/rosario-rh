@@ -38,6 +38,16 @@
   }
   h1 { font-size: 24px; margin: 0 0 4px; }
   .subtitle { color: var(--muted); font-size: 14px; margin: 0; }
+  .demo-banner {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
 
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
   .card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin: 0 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -109,6 +119,25 @@
   .validated-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--success); }
   .validated-row span { font-size: 13.5px; font-weight: 600; }
   .validated-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: var(--success); color: white; padding: 3px 8px; border-radius: 999px; }
+  .block-date-summary { font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .block-check { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--success); color: white; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+
+  .status-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .status-ok { background: #e4efe5; color: var(--success); }
+  .status-danger { background: var(--accent-soft); color: var(--accent); }
+  .status-neutral { background: #efece4; color: var(--muted); }
+
+  .etape-row { margin: 14px 0; }
+  .etape-row label { margin-bottom: 6px; }
+  select.f-etape-status { max-width: 220px; }
+
+  textarea.f-points-positifs { background: #eef5ee; }
+  textarea.f-axes-amelioration { background: #f9edec; }
+
+  .prev-summary { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 12.5px; color: var(--ink); }
+  .prev-summary .prev-summary-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px; }
+
+  .visa-field { display: none; }
 
   .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
   .error-state { color: var(--accent); }
@@ -160,6 +189,9 @@
         <div class="essai-row"><span class="k">Type de contrat</span><span class="v" id="roTypeContrat">—</span></div>
         <div class="essai-row"><span class="k">Date de recrutement</span><span class="v" id="roDateRecrutement">—</span></div>
         <div class="essai-row" id="roDateFinCDDRow" style="display:none;"><span class="k">Date de fin (CDD)</span><span class="v" id="roDateFinCDD">—</span></div>
+        <div class="essai-row"><span class="k">Nationalité</span><span class="v" id="roNationalite">—</span></div>
+        <div class="essai-row" id="roVisaRequisRow" style="display:none;"><span class="k">Visa requis</span><span class="v" id="roVisaRequis">—</span></div>
+        <div class="essai-row" id="roTypeVisaRow" style="display:none;"><span class="k">Type de visa</span><span class="v" id="roTypeVisa">—</span></div>
       </div>
 
       <div id="employeeEditView" style="display:none;">
@@ -193,6 +225,26 @@
               <input type="date" id="fDateFinCDD">
             </div>
           </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="fNationalite">Nationalité</label>
+              <input type="text" id="fNationalite" placeholder="ex : Française, Espagnole…">
+            </div>
+            <div class="field">
+              <label for="fVisaRequis">Visa requis (hors UE)</label>
+              <select id="fVisaRequis">
+                <option value="">— À définir —</option>
+                <option value="oui">Oui</option>
+                <option value="non">Non</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field visa-field" id="fTypeVisaWrap">
+              <label for="fTypeVisa">Type de visa</label>
+              <input type="text" id="fTypeVisa" placeholder="ex : Titre de séjour salarié…">
+            </div>
+          </div>
         </div>
         <button class="btn-primary btn-small" id="saveEmployeeBtn" style="margin-top:14px;">Enregistrer</button>
         <button class="btn-secondary btn-small" id="cancelEmployeeBtn" style="margin-top:14px;">Annuler</button>
@@ -208,7 +260,7 @@
       <div class="essai-row" style="margin-top:14px;">
         <span class="k">Période d'essai validée</span>
         <span class="v" id="roEssaiValidee" style="display:flex; align-items:center; gap:10px;">
-          —<button type="button" class="btn-secondary btn-small" id="editEssaiBtn">Modifier</button>
+          <span class="status-badge status-neutral" id="roEssaiValideeBadge">—</span><button type="button" class="btn-secondary btn-small" id="editEssaiBtn">Modifier</button>
         </span>
       </div>
       <div id="essaiEditView" style="display:none; margin-top:10px;">
@@ -287,6 +339,9 @@
   ];
 
   // Doit rester identique à la liste BLOCKS du fichier .gs.
+  // kind: "checklist" = liste de tâches uniquement (on-boarding)
+  //       "formation"  = retour 1ère semaine (commentaires) + checklist formation
+  //       "double"     = entretien classique (points positifs / axes d'amélioration / next steps), pas de checklist
   const BLOCKS = [
     { key: "onboarding", label: "On-boarding", kind: "checklist", items: ONBOARDING_ITEMS, showPrevious: null },
     { key: "formation", label: "Formation & Retour 1ère semaine", kind: "formation", items: FORMATION_ITEMS, showPrevious: null },
@@ -308,6 +363,9 @@
 
   const ESSAI_INITIAL = { "Employé": 2, "Agent de maîtrise": 3, "Cadre": 4 };
   const ESSAI_MAX_RENEWED = { "Employé": 4, "Agent de maîtrise": 6, "Cadre": 8 };
+
+  const ETAPE_STATUS_LABELS = { a_planifier: "À planifier", planifie: "Planifiée", fait: "Faite" };
+  const ETAPE_STATUS_CLASS = { a_planifier: "status-neutral", planifie: "status-danger", fait: "status-ok" };
 
   const params = new URLSearchParams(window.location.search);
   const employeeId = params.get("id") || "1";
@@ -343,8 +401,12 @@
     document.getElementById("fTypeContrat").value = employeeData.typeContrat || "";
     document.getElementById("fDateRecrutement").value = employeeData.dateRecrutement || "";
     document.getElementById("fDateFinCDD").value = employeeData.dateFinCDD || "";
+    document.getElementById("fNationalite").value = employeeData.nationalite || "";
+    document.getElementById("fVisaRequis").value = employeeData.visaRequis || "";
+    document.getElementById("fTypeVisa").value = employeeData.typeVisa || "";
     document.getElementById("fEssaiValidee").value = employeeData.essaiValidee || "";
     toggleCDDField();
+    toggleVisaField();
     renderEmployeeReadView();
     renderEssaiValideeReadView();
 
@@ -356,10 +418,14 @@
   function toggleCDDField() {
     document.getElementById("fDateFinCDDWrap").style.display = (document.getElementById("fTypeContrat").value === "CDD") ? "block" : "none";
   }
+  function toggleVisaField() {
+    document.getElementById("fTypeVisaWrap").style.display = (document.getElementById("fVisaRequis").value === "oui") ? "block" : "none";
+  }
   document.getElementById("fTypeContrat").addEventListener("change", () => { toggleCDDField(); renderEssai(); });
   document.getElementById("fCategorie").addEventListener("change", renderEssai);
   document.getElementById("fDateRecrutement").addEventListener("change", renderEssai);
   document.getElementById("fDateFinCDD").addEventListener("change", renderEssai);
+  document.getElementById("fVisaRequis").addEventListener("change", toggleVisaField);
 
   function renderEmployeeReadView() {
     document.getElementById("roCategorie").textContent = employeeData.categorie || "— À définir —";
@@ -372,6 +438,21 @@
     } else {
       cddRow.style.display = "none";
     }
+    document.getElementById("roNationalite").textContent = employeeData.nationalite || "— À définir —";
+    const visaRow = document.getElementById("roVisaRequisRow");
+    const typeVisaRow = document.getElementById("roTypeVisaRow");
+    if (employeeData.visaRequis === "oui" || employeeData.visaRequis === "non") {
+      visaRow.style.display = "flex";
+      document.getElementById("roVisaRequis").textContent = employeeData.visaRequis === "oui" ? "Oui" : "Non";
+    } else {
+      visaRow.style.display = "none";
+    }
+    if (employeeData.visaRequis === "oui") {
+      typeVisaRow.style.display = "flex";
+      document.getElementById("roTypeVisa").textContent = employeeData.typeVisa || "— À définir —";
+    } else {
+      typeVisaRow.style.display = "none";
+    }
   }
 
   document.getElementById("editEmployeeBtn").addEventListener("click", () => {
@@ -383,7 +464,11 @@
     document.getElementById("fTypeContrat").value = employeeData.typeContrat || "";
     document.getElementById("fDateRecrutement").value = employeeData.dateRecrutement || "";
     document.getElementById("fDateFinCDD").value = employeeData.dateFinCDD || "";
+    document.getElementById("fNationalite").value = employeeData.nationalite || "";
+    document.getElementById("fVisaRequis").value = employeeData.visaRequis || "";
+    document.getElementById("fTypeVisa").value = employeeData.typeVisa || "";
     toggleCDDField();
+    toggleVisaField();
     document.getElementById("employeeEditView").style.display = "none";
     document.getElementById("employeeReadView").style.display = "block";
   });
@@ -397,6 +482,9 @@
       TypeContrat: document.getElementById("fTypeContrat").value,
       DateRecrutement: document.getElementById("fDateRecrutement").value,
       DateFinCDD: document.getElementById("fDateFinCDD").value,
+      Nationalite: document.getElementById("fNationalite").value,
+      VisaRequis: document.getElementById("fVisaRequis").value,
+      TypeVisa: document.getElementById("fVisaRequis").value === "oui" ? document.getElementById("fTypeVisa").value : "",
     };
     msg.textContent = "Enregistrement…";
     apiPost(payload).then(res => {
@@ -405,6 +493,9 @@
       employeeData.typeContrat = payload.TypeContrat;
       employeeData.dateRecrutement = payload.DateRecrutement;
       employeeData.dateFinCDD = payload.DateFinCDD;
+      employeeData.nationalite = payload.Nationalite;
+      employeeData.visaRequis = payload.VisaRequis;
+      employeeData.typeVisa = payload.TypeVisa;
       renderEmployeeReadView();
       renderEssai();
       document.getElementById("employeeEditView").style.display = "none";
@@ -416,9 +507,12 @@
 
   // ---------- Période d'essai validée (lecture seule + Modifier) ----------
   function renderEssaiValideeReadView() {
-    const el = document.getElementById("roEssaiValidee");
-    const label = employeeData.essaiValidee === "oui" ? "Oui" : employeeData.essaiValidee === "non" ? "Non" : "— À définir —";
-    el.childNodes[0].textContent = label;
+    const badge = document.getElementById("roEssaiValideeBadge");
+    const val = employeeData.essaiValidee;
+    const label = val === "oui" ? "Oui" : val === "non" ? "Non" : "— À définir —";
+    const cls = val === "oui" ? "status-ok" : val === "non" ? "status-danger" : "status-neutral";
+    badge.textContent = label;
+    badge.className = "status-badge " + cls;
   }
 
   document.getElementById("editEssaiBtn").addEventListener("click", () => {
@@ -490,7 +584,7 @@
     const r = computeEssai();
     if (!r) { el.innerHTML = '<p class="essai-placeholder">Renseigne la date de recrutement ci-dessus pour activer le calcul.</p>'; return; }
     if (r.error) { el.innerHTML = '<p class="essai-placeholder">' + r.error + '</p>'; return; }
-    const statusLabel = { not_started: "Pas encore commencée", en_cours: "En cours", renouvelable: "Terminée (renouvellement possible dans la limite légale)", terminee: "Terminée" }[r.status];
+    const statusLabel = { not_started: "Pas encore commencée", en_cours": "En cours", renouvelable: "Terminée (renouvellement possible dans la limite légale)", terminee: "Terminée" }[r.status];
     let html = "";
     html += row("Jour d'arrivée", fmtDateFr(r.hireDate));
     html += row("Ancienneté", r.presenceDays + " jour" + (r.presenceDays > 1 ? "s" : ""));
@@ -612,18 +706,29 @@
     const card = document.createElement("div");
     card.className = "card";
 
-    // ----- Titre (cliquable pour replier/déplier) -----
+    // / ----- Titre (cliquable pour replier/déplier) -----
     const titleRow = document.createElement("p");
     titleRow.className = "card-title collapsible";
     titleRow.innerHTML = '<span></span><span style="display:flex; align-items:center; gap:8px;"></span>';
     titleRow.querySelector("span").textContent = block.label;
     const rightWrap = titleRow.querySelectorAll("span")[1];
-    if (data.validated) {
-      const badge = document.createElement("span");
-      badge.className = "validated-badge";
-      badge.textContent = "Validé";
-      rightWrap.appendChild(badge);
-    }
+
+    // Résumé visible même quand le bloc est replié : date de l'entretien + coche verte si validé.
+    const dateSummary = document.createElement("span");
+    dateSummary.className = "block-date-summary";
+    rightWrap.appendChild(dateSummary);
+
+    const statusBadge = document.createElement("span");
+    statusBadge.className = "status-badge status-neutral";
+    statusBadge.textContent = "À planifier";
+    rightWrap.appendChild(statusBadge);
+
+    const checkIcon = document.createElement("span");
+    checkIcon.className = "block-check";
+    checkIcon.textContent = "✓";
+    checkIcon.style.display = "none";
+    rightWrap.appendChild(checkIcon);
+
     const chevron = document.createElement("span");
     chevron.className = "collapse-chevron";
     chevron.textContent = "▾";
@@ -642,6 +747,32 @@
       if (evoBox) bodyWrap.appendChild(evoBox);
     }
 
+    // ----- Statut de l'étape -----
+    const etapeRow = document.createElement("div");
+    etapeRow.className = "etape-row";
+    etapeRow.innerHTML = '<label>Statut</label><select class="f-etape-status">'
+      + '<option value="a_planifier">À planifier</option>'
+      + '<option value="planifie">Planifiée</option>'
+      + '<option value="fait">Faite</option>'
+      + '</select>';
+    const etapeSelect = etapeRow.querySelector("select");
+    etapeSelect.value = data.etapeStatus || "a_planifier";
+    bodyWrap.appendChild(etapeRow);
+
+    function refreshStatusBadge() {
+      const val = etapeSelect.value;
+      statusBadge.textContent = ETAPE_STATUS_LABELS[val] || ETAPE_STATUS_LABELS.a_planifier;
+      statusBadge.className = "status-badge " + (ETAPE_STATUS_CLASS[val] || "status-neutral");
+      checkIcon.style.display = val === "fait" ? "inline-flex" : "none";
+    }
+    refreshStatusBadge();
+    etapeSelect.addEventListener("change", () => {
+      refreshStatusBadge();
+      if (etapeSelect.value === "fait") {
+        setTimeout(() => { card.classList.add("collapsed"); }, 200);
+      }
+    });
+
     // ----- Date de l'entretien -----
     const scheduleRow = document.createElement("div");
     scheduleRow.className = "schedule-row";
@@ -659,6 +790,7 @@
     function refreshDateUi() {
       const val = dateInput.value;
       dateReadout.textContent = val ? fmtDateFr(new Date(val + "T00:00:00")) : "";
+      dateSummary.textContent = val ? fmtDateFr(new Date(val + "T00:00:00")) : "";
     }
     refreshDateUi();
     dateInput.addEventListener("change", refreshDateUi);
@@ -668,9 +800,11 @@
     let checklistCheckedFormation = null;
 
     if (block.kind === "checklist") {
+      // On-boarding : uniquement la checklist
       checklistCheckedOnboarding = Object.assign({}, data.checklistChecked || {});
       bodyWrap.appendChild(renderChecklist(block.items, checklistCheckedOnboarding, () => {}));
     } else if (block.kind === "formation") {
+      // On commence par le Retour 1ère semaine (c'est le premier point du rendez-vous), puis la checklist Formation.
       const retourTitle = document.createElement("p");
       retourTitle.className = "subsection-title";
       retourTitle.textContent = "Retour 1ère semaine";
@@ -689,20 +823,9 @@
       checklistCheckedFormation = Object.assign({}, data.checklistChecked || {});
       bodyWrap.appendChild(renderChecklist(block.items, checklistCheckedFormation, () => {}));
     } else {
+      // Entretien classique : pas de checklist
       appendInterviewFields(bodyWrap, data);
     }
-
-    // ----- Validé -----
-    const validatedRow = document.createElement("label");
-    validatedRow.className = "validated-row";
-    validatedRow.innerHTML = '<input type="checkbox" class="f-validated"><span>Marquer ce bloc comme validé</span>';
-    validatedRow.querySelector("input").checked = !!data.validated;
-    validatedRow.querySelector("input").addEventListener("change", (e) => {
-      if (e.target.checked) {
-        setTimeout(() => { card.classList.add("collapsed"); }, 200);
-      }
-    });
-    bodyWrap.appendChild(validatedRow);
 
     const saveBtn = document.createElement("button");
     saveBtn.className = "btn-primary";
@@ -715,7 +838,8 @@
     saveBtn.addEventListener("click", () => {
       const payload = {
         interviewDate: dateInput.value,
-        validated: validatedRow.querySelector("input").checked,
+        etapeStatus: etapeSelect.value,
+        validated: etapeSelect.value === "fait",
       };
       if (block.kind === "checklist") {
         payload.checklistChecked = checklistCheckedOnboarding;
@@ -735,13 +859,9 @@
       apiPost(Object.assign({ action: "saveBlock", employeeId: employeeId, blockType: block.key }, payload)).then(res => {
         if (res.error) { statusMsg.textContent = res.error; return; }
         blocksData[block.key] = Object.assign({}, data, payload);
-        const badgeWrap = titleRow.querySelectorAll("span")[1];
-        badgeWrap.querySelectorAll(".validated-badge").forEach(b => b.remove());
+        refreshStatusBadge();
+        refreshDateUi();
         if (payload.validated) {
-          const badge = document.createElement("span");
-          badge.className = "validated-badge";
-          badge.textContent = "Validé";
-          badgeWrap.insertBefore(badge, badgeWrap.firstChild);
           card.classList.add("collapsed");
         }
         statusMsg.textContent = "Enregistré.";
