@@ -364,8 +364,8 @@
   const ESSAI_INITIAL = { "Employé": 2, "Agent de maîtrise": 3, "Cadre": 4 };
   const ESSAI_MAX_RENEWED = { "Employé": 4, "Agent de maîtrise": 6, "Cadre": 8 };
 
-  const ETAPE_STATUS_LABELS = { a_planifier: "À planifier", planifie: "Planifiée", fait: "Faite" };
-  const ETAPE_STATUS_CLASS = { a_planifier: "status-neutral", planifie: "status-danger", fait: "status-ok" };
+  const ETAPE_STATUS_LABELS = { a_planifier: "À planifier", planifie: "Planifiée", fait: "Faite", non_realisee: "Non réalisée" };
+  const ETAPE_STATUS_CLASS = { a_planifier: "status-neutral", planifie: "status-danger", fait: "status-ok", non_realisee: "status-danger" };
 
   const params = new URLSearchParams(window.location.search);
   let employeeId = params.get("id") || "";
@@ -768,6 +768,7 @@
       + '<option value="a_planifier">À planifier</option>'
       + '<option value="planifie">Planifiée</option>'
       + '<option value="fait">Faite</option>'
+      + '<option value="non_realisee">Non réalisée</option>'
       + '</select>';
     const etapeSelect = etapeRow.querySelector("select");
     etapeSelect.value = data.etapeStatus || "a_planifier";
