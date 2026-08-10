@@ -89,6 +89,10 @@
   .meta-neutral, .meta-unknown { background: #efece4; color: var(--muted); }
   .employee-progress { font-size: 12px; color: var(--muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
   .employee-progress strong { color: var(--ink); font-weight: 600; }
+  .progress-line { margin-top: 4px; }
+  .progress-line:first-child { margin-top: 0; }
+  .progress-line.action-line { color: var(--accent); font-weight: 600; }
+  .progress-line.action-line strong { color: var(--accent); }
 
   .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
   .error-state { color: var(--accent); }
@@ -211,18 +215,19 @@
   function addMonths(date, months) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + months); return d; }
   function fmtDateFr(d) { return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }); }
 
-  function essaiInfo(emp) {
-    if (emp.essaiValidee === "oui") return { label: "Période d'essai validée", cls: "meta-ok" };
-    if (emp.essaiValidee === "non") return { label: "Période d'essai non validée", cls: "meta-warning" };
-    if (!emp.dateRecrutement) return { label: "Date d'arrivée non renseignée", cls: "meta-unknown" };
-
+  // Calcule les dates de fin de période d'essai (initiale + max avec
+  // renouvellement) — partagé entre le badge de statut (essaiInfo) et la
+  // ligne d'action de la carte (essaiActionLine) pour ne pas dupliquer la
+  // logique CDD / CDI en deux endroits.
+  function computeEssaiDates(emp) {
+    if (!emp.dateRecrutement) return null;
     const hireDate = new Date(emp.dateRecrutement + "T00:00:00");
     const typeContrat = emp.typeContrat || "CDI";
     const categorie = emp.categorie || "Employé";
     let initialEnd, maxEnd;
 
     if (typeContrat === "CDD") {
-      if (!emp.dateFinCDD) return { label: "Période d'essai : date de fin CDD manquante", cls: "meta-unknown" };
+      if (!emp.dateFinCDD) return null;
       const cddEnd = new Date(emp.dateFinCDD + "T00:00:00");
       const contractDays = Math.round((cddEnd - hireDate) / 86400000);
       const essaiDays = contractDays <= 183 ? Math.min(Math.ceil(contractDays / 7), 14) : 30;
@@ -234,11 +239,34 @@
       initialEnd = addMonths(hireDate, initMonths);
       maxEnd = addMonths(hireDate, maxMonths);
     }
+    return { initialEnd: initialEnd, maxEnd: maxEnd };
+  }
 
+  function essaiInfo(emp) {
+    if (emp.essaiValidee === "oui") return { label: "Période d'essai validée", cls: "meta-ok" };
+    if (emp.essaiValidee === "non") return { label: "Période d'essai non validée", cls: "meta-warning" };
+    if (!emp.dateRecrutement) return { label: "Date d'arrivée non renseignée", cls: "meta-unknown" };
+    if (emp.typeContrat === "CDD" && !emp.dateFinCDD) return { label: "Période d'essai : date de fin CDD manquante", cls: "meta-unknown" };
+
+    const dates = computeEssaiDates(emp);
+    if (!dates) return { label: "Date d'arrivée non renseignée", cls: "meta-unknown" };
     const now = new Date();
-    if (now < initialEnd) return { label: "Période d'essai en cours (fin " + fmtDateFr(initialEnd) + ")", cls: "meta-warning" };
-    if (now < maxEnd) return { label: "Période d'essai terminée (renouvelable)", cls: "meta-neutral" };
+    if (now < dates.initialEnd) return { label: "Période d'essai en cours (fin " + fmtDateFr(dates.initialEnd) + ")", cls: "meta-warning" };
+    if (now < dates.maxEnd) return { label: "Période d'essai terminée (renouvelable)", cls: "meta-neutral" };
     return { label: "Période d'essai terminée", cls: "meta-ok" };
+  }
+
+  // Ligne d'action affichée sur la carte pour rappeler la date-limite de
+  // décision sur la période d'essai — seulement tant que le champ "Période
+  // d'essai validée" n'a pas été renseigné (oui/non) sur la fiche.
+  function essaiActionLine(emp) {
+    if (emp.essaiValidee === "oui" || emp.essaiValidee === "non") return null;
+    const dates = computeEssaiDates(emp);
+    if (!dates) return null;
+    const now = new Date();
+    if (now < dates.initialEnd) return "Fin de période d'essai : " + fmtDateFr(dates.initialEnd);
+    if (now < dates.maxEnd) return "Fin de période d'essai (renouvellement) : " + fmtDateFr(dates.maxEnd);
+    return "Période d'essai dépassée — décision à prendre";
   }
 
   // Provisoire côté client : tant que le nouveau backend .gs (qui filtre déjà
@@ -381,16 +409,31 @@
 
     const progressEl = document.createElement("div");
     progressEl.className = "employee-progress";
-    if (emp.lastValidatedBlock) {
-      progressEl.innerHTML = "Dernier point validé : <strong></strong>" + (emp.nextBlock ? " · Prochain : <strong></strong>" : "");
-      const strongs = progressEl.querySelectorAll("strong");
-      strongs[0].textContent = emp.lastValidatedBlock;
-      if (emp.nextBlock) strongs[1].textContent = emp.nextBlock;
-    } else {
-      progressEl.innerHTML = "Aucun point validé pour l'instant" + (emp.nextBlock ? " · À faire : <strong></strong>" : "");
-      const strong = progressEl.querySelector("strong");
-      if (strong) strong.textContent = emp.nextBlock;
+
+    const doneLine = document.createElement("div");
+    doneLine.className = "progress-line";
+    doneLine.innerHTML = emp.lastValidatedBlock
+      ? "Fait : <strong></strong>"
+      : "Aucun point validé pour l'instant";
+    if (emp.lastValidatedBlock) doneLine.querySelector("strong").textContent = emp.lastValidatedBlock;
+    progressEl.appendChild(doneLine);
+
+    if (emp.nextBlock) {
+      const nextLine = document.createElement("div");
+      nextLine.className = "progress-line action-line";
+      nextLine.innerHTML = "À planifier : <strong></strong>";
+      nextLine.querySelector("strong").textContent = emp.nextBlock;
+      progressEl.appendChild(nextLine);
     }
+
+    const essaiAction = essaiActionLine(emp);
+    if (essaiAction) {
+      const essaiLine = document.createElement("div");
+      essaiLine.className = "progress-line action-line";
+      essaiLine.textContent = essaiAction;
+      progressEl.appendChild(essaiLine);
+    }
+
     main.appendChild(progressEl);
 
     a.appendChild(main);
