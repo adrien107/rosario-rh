@@ -180,6 +180,13 @@
     </div>
   </div>
 
+  <div class="card">
+    <p class="card-title">Manager</p>
+    <div id="employeeListManager">
+      <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
   <footer>Domingo — Rosario · usage interne</footer>
 </div>
 
@@ -190,10 +197,13 @@
 
   const employeeListSalleEl = document.getElementById("employeeListSalle");
   const employeeListBarEl = document.getElementById("employeeListBar");
+  const employeeListManagerEl = document.getElementById("employeeListManager");
 
-  // Postes considérés comme "Bar" ; tout le reste (Chef de rang, Runner, Manager, etc.) = "Salle".
+  // Postes considérés comme "Bar" et "Manager" ; tout le reste (Chef de rang, Runner, etc.) = "Salle".
   const BAR_POSTES = ["Barman", "Barmaid", "Bartender"];
+  const MANAGER_POSTES = ["Manager"];
   function isBar(emp) { return BAR_POSTES.indexOf(emp.poste) !== -1; }
+  function isManager(emp) { return MANAGER_POSTES.indexOf(emp.poste) !== -1; }
 
   // ---------- Période d'essai (identique au calcul de fiche.html, version condensée) ----------
   const ESSAI_INITIAL = { "Employé": 2, "Agent de maîtrise": 3, "Cadre": 4 };
@@ -251,6 +261,33 @@
     return list;
   }
 
+  // Pablo Acevedo et Pablo Castrillon sont en fait la même personne (Pablo
+  // Acevedo Castrillon, Chef de rang) — confirmé par Adrien le 2026-08-10.
+  // Provisoire côté client tant qu'Adrien n'a pas exécuté mergePabloDuplicate()
+  // côté Apps Script : on renomme "pablo-acevedo" et on retire le doublon
+  // "pablo-castrillon" de la liste.
+  const NAME_OVERRIDES = { "pablo-acevedo": "Pablo Acevedo Castrillon" };
+  const MERGED_DUPLICATE_IDS = ["pablo-castrillon"];
+  function applyNameOverrides(list) {
+    list.forEach(emp => { if (NAME_OVERRIDES[emp.id]) emp.nom = NAME_OVERRIDES[emp.id]; });
+    return list;
+  }
+
+  // Gustavo Meaurio, communiqué par Adrien le 2026-08-10, absent du roster
+  // Google Sheet pour l'instant. Provisoire côté client tant qu'Adrien n'a pas
+  // exécuté addGustavoMeaurio() côté Apps Script : on l'injecte ici pour que
+  // l'aperçu soit correct, uniquement s'il n'est pas déjà remonté par l'API
+  // (pour ne pas le dupliquer une fois ajouté côté Sheet).
+  const SYNTHETIC_EMPLOYEES = [
+    { id: "gustavo-meaurio", nom: "Gustavo Meaurio", poste: "Manager", categorie: "", typeContrat: "CDI", dateRecrutement: "2025-10-23", dateFinCDD: "", essaiValidee: "oui", statut: "Actif", notes: "" },
+  ];
+  function applySyntheticEmployees(list) {
+    SYNTHETIC_EMPLOYEES.forEach(synth => {
+      if (!list.some(emp => emp.id === synth.id)) list.push(synth);
+    });
+    return list;
+  }
+
   function sortByAnciennete(list) {
     list.sort((a, b) => {
       if (!a.dateRecrutement && !b.dateRecrutement) return 0;
@@ -272,6 +309,7 @@
       const msg = '<div class="error-state">Apps Script pas encore configuré : colle l\'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
       employeeListSalleEl.innerHTML = msg;
       employeeListBarEl.innerHTML = msg;
+      employeeListManagerEl.innerHTML = msg;
       return;
     }
     fetch(APPS_SCRIPT_URL + "?action=roster&key=" + encodeURIComponent(ACCESS_KEY))
@@ -280,22 +318,28 @@
         if (data.error) {
           employeeListSalleEl.innerHTML = '<div class="error-state">' + data.error + '</div>';
           employeeListBarEl.innerHTML = '<div class="error-state">' + data.error + '</div>';
+          employeeListManagerEl.innerHTML = '<div class="error-state">' + data.error + '</div>';
           return;
         }
 
-        data = data.filter(emp => NON_HIRING_FRONT_IDS.indexOf(emp.id) === -1 && NOT_CURRENT_HIRED_IDS.indexOf(emp.id) === -1);
+        data = data.filter(emp => NON_HIRING_FRONT_IDS.indexOf(emp.id) === -1 && NOT_CURRENT_HIRED_IDS.indexOf(emp.id) === -1 && MERGED_DUPLICATE_IDS.indexOf(emp.id) === -1);
         data = applyDateOverrides(data);
+        data = applyNameOverrides(data);
+        data = applySyntheticEmployees(data);
 
-        const salle = sortByAnciennete(data.filter(emp => !isBar(emp)));
+        const manager = sortByAnciennete(data.filter(emp => isManager(emp)));
+        const salle = sortByAnciennete(data.filter(emp => !isBar(emp) && !isManager(emp)));
         const bar = sortByAnciennete(data.filter(emp => isBar(emp)));
 
         renderList(employeeListSalleEl, salle);
         renderList(employeeListBarEl, bar);
+        renderList(employeeListManagerEl, manager);
       })
       .catch(() => {
         const msg = '<div class="error-state">Connexion impossible à l\'Apps Script.</div>';
         employeeListSalleEl.innerHTML = msg;
         employeeListBarEl.innerHTML = msg;
+        employeeListManagerEl.innerHTML = msg;
       });
   }
 
