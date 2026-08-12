@@ -920,25 +920,38 @@
       return firstName + " <> Adrien - " + block.label;
     }
 
-    // Lien "Créer l'invitation Google Calendar" — visible dès que le statut
-    // est "Planifiée" (et une date renseignée), à côté du select Statut.
-    // Remplace l'ancien window.open() automatique au changement de statut,
-    // qui pouvait être bloqué par le navigateur sans que ce soit visible.
+    // Lien "Créer l'invitation Google Calendar" — visible dès que le point
+    // n'est pas encore "Faite"/"Non réalisée" (donc dès "À planifier"), à
+    // côté du select Statut. C'est ce lien qui sert à créer l'événement en
+    // premier ; la date choisie dans Google Calendar doit ensuite être
+    // recopiée dans le champ "Date de l'entretien" ci-dessous et le statut
+    // passé sur "Planifiée" (pas de lecture automatique depuis Calendar,
+    // qui demanderait une intégration OAuth). Si aucune date n'est encore
+    // renseignée, le lien pré-remplit l'invitation à la date du jour — à
+    // ajuster directement dans Google Calendar au moment de la création.
     const calLinkRow = document.createElement("div");
     calLinkRow.className = "cal-link-row";
     calLinkRow.style.cssText = "margin-top:8px; display:none;";
     const calLink = document.createElement("a");
     calLink.target = "_blank";
     calLink.rel = "noopener";
-    calLink.textContent = "📅 Créer l'invitation Google Calendar";
     calLink.style.cssText = "font-size:12.5px; font-weight:600; color:var(--accent); text-decoration:none;";
     calLinkRow.appendChild(calLink);
     etapeRow.appendChild(calLinkRow);
 
+    function todayStr() {
+      const d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+
     function refreshCalLink() {
-      const show = etapeSelect.value === "planifie" && !!dateInput.value;
+      const val = etapeSelect.value;
+      const show = val === "a_planifier" || val === "planifie";
       calLinkRow.style.display = show ? "block" : "none";
-      if (show) calLink.href = googleCalendarLink(dateInput.value, getInviteTitle());
+      if (!show) return;
+      const dateForLink = dateInput.value || todayStr();
+      calLink.href = googleCalendarLink(dateForLink, getInviteTitle());
+      calLink.textContent = dateInput.value ? "📅 Créer l'invitation Google Calendar" : "📅 Créer l'invitation Google Calendar (date à choisir dans Calendar)";
     }
 
     function refreshStatusBadge() {
@@ -948,6 +961,9 @@
       checkIcon.style.display = val === "fait" ? "inline-flex" : "none";
     }
     refreshStatusBadge();
+    // refreshCalLink() n'est pas appelée ici : elle lit dateInput, qui n'est
+    // déclaré (const) que plus bas. Le premier appel se fait via
+    // refreshDateUi() une fois dateInput défini (voir plus bas).
     etapeSelect.addEventListener("change", () => {
       refreshStatusBadge();
       refreshCalLink();
@@ -955,9 +971,6 @@
       // bloc (pas besoin de cliquer sur Enregistrer) et replient la carte.
       if (etapeSelect.value === "fait" || etapeSelect.value === "non_realisee") {
         saveBlockData();
-      } else if (etapeSelect.value === "planifie" && !dateInput.value) {
-        statusMsg.textContent = "Renseigne d'abord la date de l'entretien pour créer l'invitation.";
-        setTimeout(() => { statusMsg.textContent = ""; }, 3500);
       }
     });
 
