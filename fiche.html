@@ -209,6 +209,7 @@
         <div id="roVisaAlert" class="visa-alert" style="display:none;">⚠️ Visa à vérifier</div>
         <div class="essai-row" id="roTypeVisaRow" style="display:none;"><span class="k">Type de visa</span><span class="v" id="roTypeVisa">—</span></div>
         <div class="essai-row" id="roDateExpirationVisaRow" style="display:none;"><span class="k">Expiration visa</span><span class="v" id="roDateExpirationVisa">—</span></div>
+        <div id="roVisaExpiringAlert" class="visa-alert" style="display:none;"></div>
         <div class="essai-row" style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
           <span class="k">Période d'essai</span>
           <span class="v" style="font-weight:400; color:var(--muted); font-size:12.5px; text-align:right;">2 mois + renouvellement automatique de 2 mois (4 mois au total)</span>
@@ -484,15 +485,37 @@
     document.getElementById("roVisaAlert").style.display = nonEurope ? "block" : "none";
     const typeVisaRow = document.getElementById("roTypeVisaRow");
     const dateExpirationVisaRow = document.getElementById("roDateExpirationVisaRow");
+    const expiringAlert = document.getElementById("roVisaExpiringAlert");
     if (nonEurope) {
       typeVisaRow.style.display = "flex";
       document.getElementById("roTypeVisa").textContent = employeeData.typeVisa || "— À définir —";
       dateExpirationVisaRow.style.display = "flex";
       document.getElementById("roDateExpirationVisa").textContent = employeeData.dateExpirationVisa ? fmtDateFr(new Date(employeeData.dateExpirationVisa + "T00:00:00")) : "— À définir —";
+      const expiring = isVisaExpiringSoon(employeeData.dateExpirationVisa);
+      if (expiring) {
+        expiringAlert.style.display = "block";
+        expiringAlert.textContent = expiring === "expired"
+          ? "⚠️ Visa expiré (" + fmtDateFr(new Date(employeeData.dateExpirationVisa + "T00:00:00")) + ") — à régulariser en urgence."
+          : "⚠️ Visa expire bientôt (" + fmtDateFr(new Date(employeeData.dateExpirationVisa + "T00:00:00")) + ") — à renouveler.";
+      } else {
+        expiringAlert.style.display = "none";
+      }
     } else {
       typeVisaRow.style.display = "none";
       dateExpirationVisaRow.style.display = "none";
+      expiringAlert.style.display = "none";
     }
+  }
+
+  // Renvoie "expired" si la date d'expiration du visa est déjà dépassée,
+  // "soon" si elle tombe dans moins de 4 mois, sinon null (rien à signaler).
+  function isVisaExpiringSoon(dateExpirationVisa) {
+    if (!dateExpirationVisa) return null;
+    const expDate = new Date(dateExpirationVisa + "T00:00:00");
+    const now = new Date();
+    if (expDate < now) return "expired";
+    const alertThreshold = addMonths(now, 4);
+    return expDate <= alertThreshold ? "soon" : null;
   }
 
   document.getElementById("editEmployeeBtn").addEventListener("click", () => {
@@ -631,11 +654,34 @@
     return a;
   }
 
+  // ---------- Délais de prévenance post-essai (convention collective HCR,
+  // IDCC 1979, brochure 3292 — tableau "Préavis démission/licenciement",
+  // en vigueur 2026, source LégiSocial). S'appliquent une fois la période
+  // d'essai terminée ou validée : à ce moment-là, ce ne sont plus les délais
+  // courts de rupture d'essai (24h/48h/etc.) qui s'appliquent, mais le
+  // préavis normal ci-dessous, qui dépend de la catégorie et de l'ancienneté.
+  const CHR_NOTICE_DEMISSION = {
+    "Cadre": { lt6: "1 mois", from6to2: "3 mois", gt2: "3 mois" },
+    "Agent de maîtrise": { lt6: "15 jours", from6to2: "1 mois", gt2: "2 mois" },
+    "Employé": { lt6: "8 jours", from6to2: "15 jours", gt2: "1 mois" },
+  };
+  const CHR_NOTICE_LICENCIEMENT = {
+    "Cadre": { lt6: "1 mois", from6to2: "3 mois", gt2: "3 mois" },
+    "Agent de maîtrise": { lt6: "15 jours", from6to2: "1 mois", gt2: "2 mois" },
+    "Employé": { lt6: "8 jours", from6to2: "1 mois", gt2: "2 mois" },
+  };
+  function getChrNotice(categorie, presenceDays) {
+    const cat = CHR_NOTICE_DEMISSION[categorie] ? categorie : "Employé";
+    const band = presenceDays < 182 ? "lt6" : (presenceDays < 730 ? "from6to2" : "gt2");
+    return { demission: CHR_NOTICE_DEMISSION[cat][band], licenciement: CHR_NOTICE_LICENCIEMENT[cat][band] };
+  }
+
   function computeEssai() {
     const hireStr = document.getElementById("fDateRecrutement").value;
     if (!hireStr) return null;
     const hireDate = new Date(hireStr + "T00:00:00");
     const typeContrat = document.getElementById("fTypeContrat").value || "CDI";
+    const categorie = document.getElementById("fCategorie").value || "Employé";
     let initialEnd, maxEnd, note = "";
 
     if (typeContrat === "CDD") {
@@ -663,8 +709,9 @@
     let employerNotice = presenceDays < 8 ? "24 heures" : presenceDays <= 30 ? "48 heures" : presenceDays <= 90 ? "2 semaines" : "1 mois";
     let employeeNotice = presenceDays < 8 ? "24 heures" : "48 heures";
     let status = presenceDays < 0 ? "not_started" : (now < maxEnd ? "en_cours" : "terminee");
+    const chrNotice = getChrNotice(categorie, presenceDays);
 
-    return { hireDate, initialEnd, maxEnd, presenceDays, employerNotice, employeeNotice, status, note };
+    return { hireDate, initialEnd, maxEnd, presenceDays, employerNotice, employeeNotice, status, note, chrNotice };
   }
 
   function renderEssai() {
@@ -679,17 +726,23 @@
     html += row("Statut", statusLabel);
     html += row("Fin de période d'essai (sans renouvellement)", fmtDateFr(r.initialEnd));
     if (r.maxEnd.getTime() !== r.initialEnd.getTime()) html += row("Fin maximale (avec renouvellement)", fmtDateFr(r.maxEnd));
-    // Ces délais de prévenance (24h/48h/2 semaines/1 mois, art. L.1221-25/26)
-    // ne s'appliquent que pendant la période d'essai elle-même. Une fois
-    // celle-ci terminée, ils n'ont plus lieu d'être — c'est le préavis normal
-    // (contrat / convention collective HCR) qui s'applique, pas modélisé ici.
-    if (r.status === "en_cours") {
+    // Les délais courts (24h/48h/2 semaines/1 mois, art. L.1221-25/26) ne
+    // s'appliquent que pendant la période d'essai elle-même et tant qu'elle
+    // n'a pas été validée manuellement. Une fois l'essai terminé (par la
+    // date) OU validé (champ "Période d'essai validée" = Oui), c'est le
+    // préavis normal de la convention collective HCR qui s'applique —
+    // affiché ci-dessous (démission ET licenciement, car ils diffèrent).
+    const essaiOver = r.status === "terminee" || employeeData.essaiValidee === "oui";
+    if (!essaiOver) {
       html += row("Délai de prévenance — employeur (si rupture aujourd'hui)", r.employerNotice);
       html += row("Délai de prévenance — salarié (si rupture aujourd'hui)", r.employeeNotice);
+    } else {
+      html += row("Préavis en cas de démission (convention CHR)", r.chrNotice.demission);
+      html += row("Préavis en cas de licenciement (convention CHR)", r.chrNotice.licenciement);
     }
     el.innerHTML = html;
-    if (r.status === "terminee") {
-      el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">Période d\'essai terminée : les délais de prévenance ci-dessus ne s\'appliquent plus. Une rupture suit désormais le préavis normal prévu par le contrat ou la convention collective, pas les règles de la période d\'essai.</p>';
+    if (essaiOver) {
+      el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">Période d\'essai terminée ou validée : les délais courts de rupture d\'essai ne s\'appliquent plus. Le préavis ci-dessus est celui de la convention collective HCR (IDCC 1979) selon la catégorie et l\'ancienneté — à confirmer avec un conseil juridique avant toute décision de rupture.</p>';
     }
     if (r.note) el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">' + r.note + '</p>';
     function row(k, v) { return '<div class="essai-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
@@ -861,6 +914,33 @@
     etapeSelect.value = data.etapeStatus || "a_planifier";
     bodyWrap.appendChild(etapeRow);
 
+    // Titre d'invitation Google Calendar : "Prénom <> Adrien - [label du point]".
+    function getInviteTitle() {
+      const firstName = (employeeData && employeeData.nom) ? employeeData.nom.split(" ")[0] : "";
+      return firstName + " <> Adrien - " + block.label;
+    }
+
+    // Lien "Créer l'invitation Google Calendar" — visible dès que le statut
+    // est "Planifiée" (et une date renseignée), à côté du select Statut.
+    // Remplace l'ancien window.open() automatique au changement de statut,
+    // qui pouvait être bloqué par le navigateur sans que ce soit visible.
+    const calLinkRow = document.createElement("div");
+    calLinkRow.className = "cal-link-row";
+    calLinkRow.style.cssText = "margin-top:8px; display:none;";
+    const calLink = document.createElement("a");
+    calLink.target = "_blank";
+    calLink.rel = "noopener";
+    calLink.textContent = "📅 Créer l'invitation Google Calendar";
+    calLink.style.cssText = "font-size:12.5px; font-weight:600; color:var(--accent); text-decoration:none;";
+    calLinkRow.appendChild(calLink);
+    etapeRow.appendChild(calLinkRow);
+
+    function refreshCalLink() {
+      const show = etapeSelect.value === "planifie" && !!dateInput.value;
+      calLinkRow.style.display = show ? "block" : "none";
+      if (show) calLink.href = googleCalendarLink(dateInput.value, getInviteTitle());
+    }
+
     function refreshStatusBadge() {
       const val = etapeSelect.value;
       statusBadge.textContent = ETAPE_STATUS_LABELS[val] || ETAPE_STATUS_LABELS.a_planifier;
@@ -870,20 +950,14 @@
     refreshStatusBadge();
     etapeSelect.addEventListener("change", () => {
       refreshStatusBadge();
+      refreshCalLink();
       // "Fait" et "Non réalisée" enregistrent immédiatement le contenu du
       // bloc (pas besoin de cliquer sur Enregistrer) et replient la carte.
       if (etapeSelect.value === "fait" || etapeSelect.value === "non_realisee") {
         saveBlockData();
-      } else if (etapeSelect.value === "planifie") {
-        // "Planifiée" ouvre directement la création d'invitation Google
-        // Calendar pour la date déjà renseignée ci-dessous.
-        if (dateInput.value) {
-          const title = block.label + (employeeData ? " — " + employeeData.nom : "");
-          window.open(googleCalendarLink(dateInput.value, title), "_blank", "noopener");
-        } else {
-          statusMsg.textContent = "Renseigne d'abord la date de l'entretien pour créer l'invitation.";
-          setTimeout(() => { statusMsg.textContent = ""; }, 3500);
-        }
+      } else if (etapeSelect.value === "planifie" && !dateInput.value) {
+        statusMsg.textContent = "Renseigne d'abord la date de l'entretien pour créer l'invitation.";
+        setTimeout(() => { statusMsg.textContent = ""; }, 3500);
       }
     });
 
@@ -905,8 +979,9 @@
       const val = dateInput.value;
       dateReadout.innerHTML = "";
       dateSummary.textContent = val ? fmtDateFr(new Date(val + "T00:00:00")) : "";
+      refreshCalLink();
       if (!val) return;
-      const title = block.label + (employeeData ? " — " + employeeData.nom : "");
+      const title = getInviteTitle();
       const row = document.createElement("div");
       row.className = "cal-chip-row";
       row.appendChild(buildCalendarChip(val, title, false));
