@@ -115,11 +115,26 @@
   .checklist-children { margin-top: 4px; margin-left: 28px; }
   .schedule-date-display { font-size: 15px; font-weight: 600; color: var(--ink); margin-top: 4px; }
 
+  .cal-chip-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .cal-chip {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card); text-decoration: none; overflow: hidden; flex-shrink: 0;
+  }
+  .cal-chip:hover { border-color: var(--accent); }
+  .cal-chip .cal-month { background: var(--accent); color: white; font-size: 9px; font-weight: 700; text-transform: uppercase; width: 100%; text-align: center; padding: 2px 0; letter-spacing: 0.03em; }
+  .cal-chip .cal-day { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1; padding-top: 3px; }
+  .cal-chip-mini { width: 26px; height: 26px; border-radius: 6px; }
+  .cal-chip-mini .cal-month { font-size: 7px; padding: 1px 0; }
+  .cal-chip-mini .cal-day { font-size: 10px; padding-top: 2px; }
+  .cal-chip-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+
   .validated-row { display: flex; align-items: center; gap: 8px; margin: 14px 0; cursor: pointer; }
   .validated-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--success); }
   .validated-row span { font-size: 13.5px; font-weight: 600; }
   .validated-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: var(--success); color: white; padding: 3px 8px; border-radius: 999px; }
-  .block-date-summary { font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .card-title-left { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+  .block-date-summary { font-size: 11px; font-weight: 500; color: var(--muted); white-space: nowrap; text-transform: none; letter-spacing: normal; }
   .block-check { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--success); color: white; font-size: 12px; font-weight: 700; flex-shrink: 0; }
 
   .status-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
@@ -138,6 +153,7 @@
   .prev-summary .prev-summary-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px; }
 
   .visa-field { display: none; }
+  .visa-alert { background: var(--accent-soft); color: var(--accent); font-size: 12.5px; font-weight: 600; padding: 8px 12px; border-radius: 8px; margin: 4px 0 14px; }
 
   .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
   .error-state { color: var(--accent); }
@@ -190,8 +206,13 @@
         <div class="essai-row"><span class="k">Date de recrutement</span><span class="v" id="roDateRecrutement">—</span></div>
         <div class="essai-row" id="roDateFinCDDRow" style="display:none;"><span class="k">Date de fin (CDD)</span><span class="v" id="roDateFinCDD">—</span></div>
         <div class="essai-row"><span class="k">Nationalité</span><span class="v" id="roNationalite">—</span></div>
-        <div class="essai-row" id="roVisaRequisRow" style="display:none;"><span class="k">Visa requis</span><span class="v" id="roVisaRequis">—</span></div>
+        <div id="roVisaAlert" class="visa-alert" style="display:none;">⚠️ Visa à vérifier</div>
         <div class="essai-row" id="roTypeVisaRow" style="display:none;"><span class="k">Type de visa</span><span class="v" id="roTypeVisa">—</span></div>
+        <div class="essai-row" id="roDateExpirationVisaRow" style="display:none;"><span class="k">Expiration visa</span><span class="v" id="roDateExpirationVisa">—</span></div>
+        <div class="essai-row" style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
+          <span class="k">Période d'essai</span>
+          <span class="v" style="font-weight:400; color:var(--muted); font-size:12.5px; text-align:right;">2 mois + renouvellement automatique de 2 mois (4 mois au total)</span>
+        </div>
       </div>
 
       <div id="employeeEditView" style="display:none;">
@@ -228,21 +249,22 @@
           <div class="field-row">
             <div class="field">
               <label for="fNationalite">Nationalité</label>
-              <input type="text" id="fNationalite" placeholder="ex : Française, Espagnole…">
-            </div>
-            <div class="field">
-              <label for="fVisaRequis">Visa requis (hors UE)</label>
-              <select id="fVisaRequis">
+              <select id="fNationalite">
                 <option value="">— À définir —</option>
-                <option value="oui">Oui</option>
-                <option value="non">Non</option>
+                <option value="Europe">Europe</option>
+                <option value="Non Europe">Non Europe</option>
               </select>
             </div>
           </div>
+          <div id="fVisaAlert" class="visa-alert" style="display:none;">⚠️ Visa à vérifier — renseigne le type de visa et la date d'expiration ci-dessous.</div>
           <div class="field-row">
             <div class="field visa-field" id="fTypeVisaWrap">
               <label for="fTypeVisa">Type de visa</label>
               <input type="text" id="fTypeVisa" placeholder="ex : Titre de séjour salarié…">
+            </div>
+            <div class="field visa-field" id="fDateExpirationVisaWrap">
+              <label for="fDateExpirationVisa">Date d'expiration visa</label>
+              <input type="date" id="fDateExpirationVisa">
             </div>
           </div>
         </div>
@@ -266,9 +288,8 @@
       <div id="essaiEditView" style="display:none; margin-top:10px;">
         <div class="field">
           <select id="fEssaiValidee">
-            <option value="">— À définir —</option>
+            <option value="en_cours">En cours</option>
             <option value="oui">Oui</option>
-            <option value="non">Non</option>
           </select>
         </div>
         <button class="btn-primary btn-small" id="saveEssaiBtn">Enregistrer</button>
@@ -361,8 +382,11 @@
   const BLOCK_BY_KEY = {};
   BLOCKS.forEach(b => BLOCK_BY_KEY[b.key] = b);
 
-  const ESSAI_INITIAL = { "Employé": 2, "Agent de maîtrise": 3, "Cadre": 4 };
-  const ESSAI_MAX_RENEWED = { "Employé": 4, "Agent de maîtrise": 6, "Cadre": 8 };
+  // Politique Rosario : 2 mois d'essai initial + 2 mois de renouvellement
+  // automatique (4 mois au total), quelle que soit la catégorie. Remplace
+  // l'ancien barème par catégorie (Employé/Agent de maîtrise/Cadre).
+  const ESSAI_INITIAL_MONTHS = 2;
+  const ESSAI_TOTAL_MONTHS = 4;
 
   const ETAPE_STATUS_LABELS = { a_planifier: "À planifier", planifie: "Planifiée", fait: "Faite", non_realisee: "Non réalisée" };
   const ETAPE_STATUS_CLASS = { a_planifier: "status-neutral", planifie: "status-danger", fait: "status-ok", non_realisee: "status-danger" };
@@ -416,9 +440,9 @@
     document.getElementById("fDateRecrutement").value = employeeData.dateRecrutement || "";
     document.getElementById("fDateFinCDD").value = employeeData.dateFinCDD || "";
     document.getElementById("fNationalite").value = employeeData.nationalite || "";
-    document.getElementById("fVisaRequis").value = employeeData.visaRequis || "";
     document.getElementById("fTypeVisa").value = employeeData.typeVisa || "";
-    document.getElementById("fEssaiValidee").value = employeeData.essaiValidee || "";
+    document.getElementById("fDateExpirationVisa").value = employeeData.dateExpirationVisa || "";
+    document.getElementById("fEssaiValidee").value = employeeData.essaiValidee === "oui" ? "oui" : "en_cours";
     toggleCDDField();
     toggleVisaField();
     renderEmployeeReadView();
@@ -433,13 +457,16 @@
     document.getElementById("fDateFinCDDWrap").style.display = (document.getElementById("fTypeContrat").value === "CDD") ? "block" : "none";
   }
   function toggleVisaField() {
-    document.getElementById("fTypeVisaWrap").style.display = (document.getElementById("fVisaRequis").value === "oui") ? "block" : "none";
+    const nonEurope = document.getElementById("fNationalite").value === "Non Europe";
+    document.getElementById("fTypeVisaWrap").style.display = nonEurope ? "block" : "none";
+    document.getElementById("fDateExpirationVisaWrap").style.display = nonEurope ? "block" : "none";
+    document.getElementById("fVisaAlert").style.display = nonEurope ? "block" : "none";
   }
   document.getElementById("fTypeContrat").addEventListener("change", () => { toggleCDDField(); renderEssai(); });
   document.getElementById("fCategorie").addEventListener("change", renderEssai);
   document.getElementById("fDateRecrutement").addEventListener("change", renderEssai);
   document.getElementById("fDateFinCDD").addEventListener("change", renderEssai);
-  document.getElementById("fVisaRequis").addEventListener("change", toggleVisaField);
+  document.getElementById("fNationalite").addEventListener("change", toggleVisaField);
 
   function renderEmployeeReadView() {
     document.getElementById("roCategorie").textContent = employeeData.categorie || "— À définir —";
@@ -453,19 +480,18 @@
       cddRow.style.display = "none";
     }
     document.getElementById("roNationalite").textContent = employeeData.nationalite || "— À définir —";
-    const visaRow = document.getElementById("roVisaRequisRow");
+    const nonEurope = employeeData.nationalite === "Non Europe";
+    document.getElementById("roVisaAlert").style.display = nonEurope ? "block" : "none";
     const typeVisaRow = document.getElementById("roTypeVisaRow");
-    if (employeeData.visaRequis === "oui" || employeeData.visaRequis === "non") {
-      visaRow.style.display = "flex";
-      document.getElementById("roVisaRequis").textContent = employeeData.visaRequis === "oui" ? "Oui" : "Non";
-    } else {
-      visaRow.style.display = "none";
-    }
-    if (employeeData.visaRequis === "oui") {
+    const dateExpirationVisaRow = document.getElementById("roDateExpirationVisaRow");
+    if (nonEurope) {
       typeVisaRow.style.display = "flex";
       document.getElementById("roTypeVisa").textContent = employeeData.typeVisa || "— À définir —";
+      dateExpirationVisaRow.style.display = "flex";
+      document.getElementById("roDateExpirationVisa").textContent = employeeData.dateExpirationVisa ? fmtDateFr(new Date(employeeData.dateExpirationVisa + "T00:00:00")) : "— À définir —";
     } else {
       typeVisaRow.style.display = "none";
+      dateExpirationVisaRow.style.display = "none";
     }
   }
 
@@ -479,8 +505,8 @@
     document.getElementById("fDateRecrutement").value = employeeData.dateRecrutement || "";
     document.getElementById("fDateFinCDD").value = employeeData.dateFinCDD || "";
     document.getElementById("fNationalite").value = employeeData.nationalite || "";
-    document.getElementById("fVisaRequis").value = employeeData.visaRequis || "";
     document.getElementById("fTypeVisa").value = employeeData.typeVisa || "";
+    document.getElementById("fDateExpirationVisa").value = employeeData.dateExpirationVisa || "";
     toggleCDDField();
     toggleVisaField();
     document.getElementById("employeeEditView").style.display = "none";
@@ -489,6 +515,7 @@
 
   document.getElementById("saveEmployeeBtn").addEventListener("click", () => {
     const msg = document.getElementById("employeeStatusMsg");
+    const nonEurope = document.getElementById("fNationalite").value === "Non Europe";
     const payload = {
       action: "updateEmployee",
       id: employeeId,
@@ -497,8 +524,9 @@
       DateRecrutement: document.getElementById("fDateRecrutement").value,
       DateFinCDD: document.getElementById("fDateFinCDD").value,
       Nationalite: document.getElementById("fNationalite").value,
-      VisaRequis: document.getElementById("fVisaRequis").value,
-      TypeVisa: document.getElementById("fVisaRequis").value === "oui" ? document.getElementById("fTypeVisa").value : "",
+      VisaRequis: nonEurope ? "oui" : "non",
+      TypeVisa: nonEurope ? document.getElementById("fTypeVisa").value : "",
+      DateExpirationVisa: nonEurope ? document.getElementById("fDateExpirationVisa").value : "",
     };
     msg.textContent = "Enregistrement…";
     apiPost(payload).then(res => {
@@ -510,6 +538,7 @@
       employeeData.nationalite = payload.Nationalite;
       employeeData.visaRequis = payload.VisaRequis;
       employeeData.typeVisa = payload.TypeVisa;
+      employeeData.dateExpirationVisa = payload.DateExpirationVisa;
       renderEmployeeReadView();
       renderEssai();
       document.getElementById("employeeEditView").style.display = "none";
@@ -523,8 +552,8 @@
   function renderEssaiValideeReadView() {
     const badge = document.getElementById("roEssaiValideeBadge");
     const val = employeeData.essaiValidee;
-    const label = val === "oui" ? "Oui" : val === "non" ? "Non" : "— À définir —";
-    const cls = val === "oui" ? "status-ok" : val === "non" ? "status-danger" : "status-neutral";
+    const label = val === "oui" ? "Oui" : "En cours";
+    const cls = val === "oui" ? "status-ok" : "status-neutral";
     badge.textContent = label;
     badge.className = "status-badge " + cls;
   }
@@ -533,7 +562,7 @@
     document.getElementById("essaiEditView").style.display = "block";
   });
   document.getElementById("cancelEssaiBtn").addEventListener("click", () => {
-    document.getElementById("fEssaiValidee").value = employeeData.essaiValidee || "";
+    document.getElementById("fEssaiValidee").value = employeeData.essaiValidee === "oui" ? "oui" : "en_cours";
     document.getElementById("essaiEditView").style.display = "none";
   });
 
@@ -555,12 +584,58 @@
   function addMonths(date, months) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + months); return d; }
   function fmtDateFr(d) { return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }); }
 
+  // ---------- Chip calendrier (visuel + lien Google Calendar) ----------
+  // Construit un lien "Google Calendar > créer un événement" pré-rempli en
+  // événement journée entière à la date donnée.
+  // Formate en YYYYMMDD à partir des composants locaux (jour/mois/année)
+  // plutôt que toISOString(), qui convertit en UTC et peut faire reculer la
+  // date d'un jour selon le fuseau horaire (ex : en France, minuit local
+  // devient la veille en UTC) — c'est ce qui cassait le lien Google Calendar.
+  function formatYYYYMMDD(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return "" + y + m + day;
+  }
+
+  function googleCalendarLink(dateStr, title) {
+    const start = dateStr.replace(/-/g, "");
+    const endDate = new Date(dateStr + "T00:00:00");
+    endDate.setDate(endDate.getDate() + 1);
+    const end = formatYYYYMMDD(endDate);
+    const params = new URLSearchParams({ action: "TEMPLATE", text: title, dates: start + "/" + end });
+    return "https://calendar.google.com/calendar/render?" + params.toString();
+  }
+
+  // Petit visuel type "carte de calendrier" (mois + jour), cliquable pour
+  // ouvrir la création d'invitation Google Calendar. mini = version réduite
+  // utilisée dans l'en-tête repliée de la carte.
+  function buildCalendarChip(dateStr, title, mini) {
+    const d = new Date(dateStr + "T00:00:00");
+    const monthAbbr = d.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "").toUpperCase();
+    const a = document.createElement("a");
+    a.className = "cal-chip" + (mini ? " cal-chip-mini" : "");
+    a.href = googleCalendarLink(dateStr, title);
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.title = "Ajouter à Google Calendar";
+    a.addEventListener("click", (e) => e.stopPropagation());
+    const m = document.createElement("div");
+    m.className = "cal-month";
+    m.textContent = monthAbbr;
+    const dd = document.createElement("div");
+    dd.className = "cal-day";
+    dd.textContent = d.getDate();
+    a.appendChild(m);
+    a.appendChild(dd);
+    return a;
+  }
+
   function computeEssai() {
     const hireStr = document.getElementById("fDateRecrutement").value;
     if (!hireStr) return null;
     const hireDate = new Date(hireStr + "T00:00:00");
     const typeContrat = document.getElementById("fTypeContrat").value || "CDI";
-    const categorie = document.getElementById("fCategorie").value || "Employé";
     let initialEnd, maxEnd, note = "";
 
     if (typeContrat === "CDD") {
@@ -578,17 +653,16 @@
       maxEnd = initialEnd;
       note = "CDD : 1 jour d'essai par semaine de contrat (max 2 semaines) si contrat ≤ 6 mois, sinon 1 mois max. Pas de renouvellement standard.";
     } else {
-      const initMonths = ESSAI_INITIAL[categorie] || ESSAI_INITIAL["Employé"];
-      const maxMonths = ESSAI_MAX_RENEWED[categorie] || ESSAI_MAX_RENEWED["Employé"];
-      initialEnd = addMonths(hireDate, initMonths);
-      maxEnd = addMonths(hireDate, maxMonths);
+      initialEnd = addMonths(hireDate, ESSAI_INITIAL_MONTHS);
+      maxEnd = addMonths(hireDate, ESSAI_TOTAL_MONTHS);
+      note = "Politique Rosario : 2 mois d'essai + renouvellement automatique de 2 mois (4 mois au total).";
     }
 
     const now = new Date();
     const presenceDays = Math.floor((now - hireDate) / 86400000);
     let employerNotice = presenceDays < 8 ? "24 heures" : presenceDays <= 30 ? "48 heures" : presenceDays <= 90 ? "2 semaines" : "1 mois";
     let employeeNotice = presenceDays < 8 ? "24 heures" : "48 heures";
-    let status = presenceDays < 0 ? "not_started" : (now < initialEnd ? "en_cours" : (now < maxEnd ? "renouvelable" : "terminee"));
+    let status = presenceDays < 0 ? "not_started" : (now < maxEnd ? "en_cours" : "terminee");
 
     return { hireDate, initialEnd, maxEnd, presenceDays, employerNotice, employeeNotice, status, note };
   }
@@ -598,16 +672,25 @@
     const r = computeEssai();
     if (!r) { el.innerHTML = '<p class="essai-placeholder">Renseigne la date de recrutement ci-dessus pour activer le calcul.</p>'; return; }
     if (r.error) { el.innerHTML = '<p class="essai-placeholder">' + r.error + '</p>'; return; }
-    const statusLabel = { not_started: "Pas encore commencée", en_cours: "En cours", renouvelable: "Terminée (renouvellement possible dans la limite légale)", terminee: "Terminée" }[r.status];
+    const statusLabel = { not_started: "Pas encore commencée", en_cours: "En cours (renouvellement automatique inclus)", terminee: "Terminée" }[r.status];
     let html = "";
     html += row("Jour d'arrivée", fmtDateFr(r.hireDate));
     html += row("Ancienneté", r.presenceDays + " jour" + (r.presenceDays > 1 ? "s" : ""));
     html += row("Statut", statusLabel);
     html += row("Fin de période d'essai (sans renouvellement)", fmtDateFr(r.initialEnd));
     if (r.maxEnd.getTime() !== r.initialEnd.getTime()) html += row("Fin maximale (avec renouvellement)", fmtDateFr(r.maxEnd));
-    html += row("Délai de prévenance — employeur (si rupture aujourd'hui)", r.employerNotice);
-    html += row("Délai de prévenance — salarié (si rupture aujourd'hui)", r.employeeNotice);
+    // Ces délais de prévenance (24h/48h/2 semaines/1 mois, art. L.1221-25/26)
+    // ne s'appliquent que pendant la période d'essai elle-même. Une fois
+    // celle-ci terminée, ils n'ont plus lieu d'être — c'est le préavis normal
+    // (contrat / convention collective HCR) qui s'applique, pas modélisé ici.
+    if (r.status === "en_cours") {
+      html += row("Délai de prévenance — employeur (si rupture aujourd'hui)", r.employerNotice);
+      html += row("Délai de prévenance — salarié (si rupture aujourd'hui)", r.employeeNotice);
+    }
     el.innerHTML = html;
+    if (r.status === "terminee") {
+      el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">Période d\'essai terminée : les délais de prévenance ci-dessus ne s\'appliquent plus. Une rupture suit désormais le préavis normal prévu par le contrat ou la convention collective, pas les règles de la période d\'essai.</p>';
+    }
     if (r.note) el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">' + r.note + '</p>';
     function row(k, v) { return '<div class="essai-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
   }
@@ -717,20 +800,24 @@
   function renderBlockCard(block) {
     const data = blocksData[block.key] || {};
 
+    // Replié par défaut si le bloc est marqué "fait" ou "non_realisee" —
+    // seule l'étape en cours (pas encore tranchée) reste ouverte au
+    // chargement de la page. Persiste d'une visite à l'autre car basé sur
+    // etapeStatus, sauvegardé dans la Sheet (pas juste un état de session
+    // côté client).
     const card = document.createElement("div");
-    card.className = "card";
+    card.className = "card" + ((data.etapeStatus === "fait" || data.etapeStatus === "non_realisee") ? " collapsed" : "");
 
     // ----- Titre (cliquable pour replier/déplier) -----
     const titleRow = document.createElement("p");
     titleRow.className = "card-title collapsible";
-    titleRow.innerHTML = '<span></span><span style="display:flex; align-items:center; gap:8px;"></span>';
-    titleRow.querySelector("span").textContent = block.label;
-    const rightWrap = titleRow.querySelectorAll("span")[1];
+    titleRow.innerHTML = '<span class="card-title-left"><span class="card-title-text"></span><span class="block-date-summary"></span></span><span class="card-title-right" style="display:flex; align-items:center; gap:8px;"></span>';
+    titleRow.querySelector(".card-title-text").textContent = block.label;
+    const rightWrap = titleRow.querySelector(".card-title-right");
 
-    // Résumé visible même quand le bloc est replié : date de l'entretien + coche verte si validé.
-    const dateSummary = document.createElement("span");
-    dateSummary.className = "block-date-summary";
-    rightWrap.appendChild(dateSummary);
+    // Résumé visible même quand le bloc est replié : date de l'entretien
+    // (affichée sous le titre, en texte simple) + coche verte si validé.
+    const dateSummary = titleRow.querySelector(".block-date-summary");
 
     const statusBadge = document.createElement("span");
     statusBadge.className = "status-badge status-neutral";
@@ -783,8 +870,20 @@
     refreshStatusBadge();
     etapeSelect.addEventListener("change", () => {
       refreshStatusBadge();
-      if (etapeSelect.value === "fait") {
-        setTimeout(() => { card.classList.add("collapsed"); }, 200);
+      // "Fait" et "Non réalisée" enregistrent immédiatement le contenu du
+      // bloc (pas besoin de cliquer sur Enregistrer) et replient la carte.
+      if (etapeSelect.value === "fait" || etapeSelect.value === "non_realisee") {
+        saveBlockData();
+      } else if (etapeSelect.value === "planifie") {
+        // "Planifiée" ouvre directement la création d'invitation Google
+        // Calendar pour la date déjà renseignée ci-dessous.
+        if (dateInput.value) {
+          const title = block.label + (employeeData ? " — " + employeeData.nom : "");
+          window.open(googleCalendarLink(dateInput.value, title), "_blank", "noopener");
+        } else {
+          statusMsg.textContent = "Renseigne d'abord la date de l'entretien pour créer l'invitation.";
+          setTimeout(() => { statusMsg.textContent = ""; }, 3500);
+        }
       }
     });
 
@@ -804,8 +903,18 @@
 
     function refreshDateUi() {
       const val = dateInput.value;
-      dateReadout.textContent = val ? fmtDateFr(new Date(val + "T00:00:00")) : "";
+      dateReadout.innerHTML = "";
       dateSummary.textContent = val ? fmtDateFr(new Date(val + "T00:00:00")) : "";
+      if (!val) return;
+      const title = block.label + (employeeData ? " — " + employeeData.nom : "");
+      const row = document.createElement("div");
+      row.className = "cal-chip-row";
+      row.appendChild(buildCalendarChip(val, title, false));
+      const label = document.createElement("span");
+      label.className = "cal-chip-label";
+      label.textContent = fmtDateFr(new Date(val + "T00:00:00"));
+      row.appendChild(label);
+      dateReadout.appendChild(row);
     }
     refreshDateUi();
     dateInput.addEventListener("change", refreshDateUi);
@@ -850,7 +959,11 @@
     statusMsg.className = "status-msg";
     bodyWrap.appendChild(statusMsg);
 
-    saveBtn.addEventListener("click", () => {
+    // Fonction nommée (plutôt qu'inline dans le listener du bouton) pour
+    // pouvoir être aussi déclenchée automatiquement depuis le select Statut
+    // quand on passe à "Fait" ou "Non réalisée" — dans les deux cas le
+    // contenu du bloc doit être enregistré, pas seulement replié visuellement.
+    function saveBlockData() {
       const payload = {
         interviewDate: dateInput.value,
         etapeStatus: etapeSelect.value,
@@ -876,13 +989,15 @@
         blocksData[block.key] = Object.assign({}, data, payload);
         refreshStatusBadge();
         refreshDateUi();
-        if (payload.validated) {
+        if (payload.validated || payload.etapeStatus === "non_realisee") {
           card.classList.add("collapsed");
         }
         statusMsg.textContent = "Enregistré.";
         setTimeout(() => { statusMsg.textContent = ""; }, 2500);
       }).catch(() => { statusMsg.textContent = "Connexion impossible."; });
-    });
+    }
+
+    saveBtn.addEventListener("click", saveBlockData);
 
     return card;
   }
