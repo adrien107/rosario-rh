@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -91,6 +90,7 @@
   .employee-progress { font-size: 12px; color: var(--muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
   .employee-progress strong { color: var(--ink); font-weight: 600; }
   .progress-line { margin-top: 4px; }
+  .progress-date { color: var(--muted); font-weight: 400; }
   .progress-line:first-child { margin-top: 0; }
   .progress-line.action-line { color: var(--accent); font-weight: 600; }
   .progress-line.action-line strong { color: var(--accent); }
@@ -317,20 +317,17 @@
   function isManager(emp) { return MANAGER_POSTES.indexOf(emp.poste) !== -1; }
 
   // ---------- Période d'essai (identique au calcul de fiche.html, version condensée) ----------
-  const ESSAI_INITIAL = { "Employé": 2, "Agent de maîtrise": 3, "Cadre": 4 };
-  const ESSAI_MAX_RENEWED = { "Employé": 4, "Agent de maîtrise": 6, "Cadre": 8 };
+  // Politique Rosario : 2 mois d'essai initial + 2 mois de renouvellement
+  // automatique (4 mois au total), quelle que soit la catégorie.
+  const ESSAI_INITIAL_MONTHS = 2;
+  const ESSAI_TOTAL_MONTHS = 4;
   function addMonths(date, months) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + months); return d; }
   function fmtDateFr(d) { return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }); }
 
-  // Calcule les dates de fin de période d'essai (initiale + max avec
-  // renouvellement) — partagé entre le badge de statut (essaiInfo) et la
-  // ligne d'action de la carte (essaiActionLine) pour ne pas dupliquer la
-  // logique CDD / CDI en deux endroits.
   function computeEssaiDates(emp) {
     if (!emp.dateRecrutement) return null;
     const hireDate = new Date(emp.dateRecrutement + "T00:00:00");
     const typeContrat = emp.typeContrat || "CDI";
-    const categorie = emp.categorie || "Employé";
     let initialEnd, maxEnd;
 
     if (typeContrat === "CDD") {
@@ -341,66 +338,41 @@
       initialEnd = new Date(hireDate.getTime() + essaiDays * 86400000);
       maxEnd = initialEnd;
     } else {
-      const initMonths = ESSAI_INITIAL[categorie] || ESSAI_INITIAL["Employé"];
-      const maxMonths = ESSAI_MAX_RENEWED[categorie] || ESSAI_MAX_RENEWED["Employé"];
-      initialEnd = addMonths(hireDate, initMonths);
-      maxEnd = addMonths(hireDate, maxMonths);
+      initialEnd = addMonths(hireDate, ESSAI_INITIAL_MONTHS);
+      maxEnd = addMonths(hireDate, ESSAI_TOTAL_MONTHS);
     }
     return { initialEnd: initialEnd, maxEnd: maxEnd };
   }
 
   function essaiInfo(emp) {
     if (emp.essaiValidee === "oui") return { label: "Période d'essai validée", cls: "meta-ok" };
-    if (emp.essaiValidee === "non") return { label: "Période d'essai non validée", cls: "meta-warning" };
     if (!emp.dateRecrutement) return { label: "Date d'arrivée non renseignée", cls: "meta-unknown" };
     if (emp.typeContrat === "CDD" && !emp.dateFinCDD) return { label: "Période d'essai : date de fin CDD manquante", cls: "meta-unknown" };
 
     const dates = computeEssaiDates(emp);
     if (!dates) return { label: "Date d'arrivée non renseignée", cls: "meta-unknown" };
     const now = new Date();
-    if (now < dates.initialEnd) return { label: "Période d'essai en cours (fin " + fmtDateFr(dates.initialEnd) + ")", cls: "meta-warning" };
-    if (now < dates.maxEnd) return { label: "Période d'essai terminée (renouvelable)", cls: "meta-neutral" };
+    if (now < dates.maxEnd) return { label: "Période d'essai en cours (fin " + fmtDateFr(dates.maxEnd) + ")", cls: "meta-warning" };
     return { label: "Période d'essai terminée", cls: "meta-ok" };
   }
 
-  // Ligne d'action affichée sur la carte pour rappeler la date-limite de
-  // décision sur la période d'essai — seulement tant que le champ "Période
-  // d'essai validée" n'a pas été renseigné (oui/non) sur la fiche.
   function essaiActionLine(emp) {
-    if (emp.essaiValidee === "oui" || emp.essaiValidee === "non") return null;
+    if (emp.essaiValidee === "oui") return null;
     const dates = computeEssaiDates(emp);
     if (!dates) return null;
     const now = new Date();
-    if (now < dates.initialEnd) return "Fin de période d'essai : " + fmtDateFr(dates.initialEnd);
-    if (now < dates.maxEnd) return "Fin de période d'essai (renouvellement) : " + fmtDateFr(dates.maxEnd);
+    if (now < dates.maxEnd) return "Fin de période d'essai : " + fmtDateFr(dates.maxEnd);
     return "Période d'essai dépassée — décision à prendre";
   }
 
-  // Provisoire côté client : tant que le nouveau backend .gs (qui filtre déjà
-  // Hiring-Front côté serveur) n'est pas redéployé sur Apps Script, on exclut
-  // ici les salariés cuisine / Hiring-Back pour que l'aperçu soit correct.
   const NON_HIRING_FRONT_IDS = ["elena-misiego", "nicola-baron", "lucia-curiel", "ivan", "kartika", "sofia", "godwin", "baby-john"];
-
-  // Salariés qui ne sont pas "Current" + "Hired" dans l'onglet Hiring-Front
-  // (Léa Benoît, Yohan Doudié et Sarah Auber-Yvars y sont marqués "Old" ;
-  // Mathurin Jeannes n'y apparaît pas). Pablo Acevedo et Lucas Rohan sont
-  // gardés à la demande d'Adrien même s'ils ne matchent pas Current+Hired.
   const NOT_CURRENT_HIRED_IDS = ["lea-benoit", "yohan-doudie", "sarah-auber-yvars", "mathurin-jeannes"];
-
-  // Dates de recrutement absentes du roster côté Sheet, données par Adrien.
-  // Provisoire côté client tant que la Sheet elle-même n'a pas ces cellules
-  // remplies (colonne DateRecrutement, onglet Roster).
   const DATE_OVERRIDES = { "lucas-rohan": "2026-08-19", "pablo-acevedo": "2026-07-25" };
   function applyDateOverrides(list) {
     list.forEach(emp => { if (!emp.dateRecrutement && DATE_OVERRIDES[emp.id]) emp.dateRecrutement = DATE_OVERRIDES[emp.id]; });
     return list;
   }
 
-  // Pablo Acevedo et Pablo Castrillon sont en fait la même personne (Pablo
-  // Acevedo Castrillon, Chef de rang) — confirmé par Adrien le 2026-08-10.
-  // Provisoire côté client tant qu'Adrien n'a pas exécuté mergePabloDuplicate()
-  // côté Apps Script : on renomme "pablo-acevedo" et on retire le doublon
-  // "pablo-castrillon" de la liste.
   const NAME_OVERRIDES = { "pablo-acevedo": "Pablo Acevedo Castrillon" };
   const MERGED_DUPLICATE_IDS = ["pablo-castrillon"];
   function applyNameOverrides(list) {
@@ -408,11 +380,6 @@
     return list;
   }
 
-  // Gustavo Meaurio, communiqué par Adrien le 2026-08-10, absent du roster
-  // Google Sheet pour l'instant. Provisoire côté client tant qu'Adrien n'a pas
-  // exécuté addGustavoMeaurio() côté Apps Script : on l'injecte ici pour que
-  // l'aperçu soit correct, uniquement s'il n'est pas déjà remonté par l'API
-  // (pour ne pas le dupliquer une fois ajouté côté Sheet).
   const SYNTHETIC_EMPLOYEES = [
     { id: "gustavo-meaurio", nom: "Gustavo Meaurio", poste: "Manager", categorie: "", typeContrat: "CDI", dateRecrutement: "2025-10-23", dateFinCDD: "", essaiValidee: "oui", statut: "Actif", notes: "" },
   ];
@@ -519,10 +486,13 @@
 
     const doneLine = document.createElement("div");
     doneLine.className = "progress-line";
-    doneLine.innerHTML = emp.lastValidatedBlock
-      ? "Fait : <strong></strong>"
-      : "Aucun point validé pour l'instant";
-    if (emp.lastValidatedBlock) doneLine.querySelector("strong").textContent = emp.lastValidatedBlock;
+    if (emp.lastValidatedBlock) {
+      doneLine.innerHTML = "Fait : <strong></strong>" + (emp.lastValidatedDate ? ' <span class="progress-date"></span>' : "");
+      doneLine.querySelector("strong").textContent = emp.lastValidatedBlock;
+      if (emp.lastValidatedDate) doneLine.querySelector(".progress-date").textContent = "(" + fmtDateFr(new Date(emp.lastValidatedDate + "T00:00:00")) + ")";
+    } else {
+      doneLine.textContent = "Aucun point validé pour l'instant";
+    }
     progressEl.appendChild(doneLine);
 
     if (emp.nextBlock) {
@@ -555,7 +525,6 @@
 
   loadRoster();
 
-  // ---------- Actualiser depuis Hiring - Front ----------
   document.getElementById("syncHiringBtn").addEventListener("click", () => {
     const btn = document.getElementById("syncHiringBtn");
     const msg = document.getElementById("syncHiringMsg");
@@ -580,12 +549,10 @@
       });
   });
 
-  // ---------- Process de recrutement (repliable) ----------
   document.getElementById("processCardTitle").addEventListener("click", () => {
     document.getElementById("processCard").classList.toggle("collapsed");
   });
 
-  // ---------- PIN gate ----------
   (function () {
     const PASSWORD = "Barcelona2025!";
     const pinScreen = document.getElementById("pinScreen");
