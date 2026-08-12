@@ -324,6 +324,9 @@
   function addMonths(date, months) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + months); return d; }
   function fmtDateFr(d) { return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }); }
 
+  // Calcule les dates de fin de période d'essai — partagé entre le badge de
+  // statut (essaiInfo) et la ligne d'action de la carte (essaiActionLine)
+  // pour ne pas dupliquer la logique CDD / CDI en deux endroits.
   function computeEssaiDates(emp) {
     if (!emp.dateRecrutement) return null;
     const hireDate = new Date(emp.dateRecrutement + "T00:00:00");
@@ -356,6 +359,35 @@
     return { label: "Période d'essai terminée", cls: "meta-ok" };
   }
 
+  // Ligne courte affichant les 2 échéances de la période d'essai (fin
+  // initiale à 2 mois, fin avec renouvellement à 4 mois) pour savoir en un
+  // coup d'œil quand se pose la question du renouvellement puis de la
+  // validation finale. Affichée tant que l'essai n'a pas été validé.
+  function essaiDatesLine(emp) {
+    if (emp.essaiValidee === "oui") return null;
+    const dates = computeEssaiDates(emp);
+    if (!dates) return null;
+    const fmtShort = d => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }).replace(".", "");
+    if (dates.maxEnd.getTime() === dates.initialEnd.getTime()) {
+      return "Fin d'essai : " + fmtShort(dates.initialEnd);
+    }
+    return "Fin essai initial : " + fmtShort(dates.initialEnd) + " · Fin avec renouvellement : " + fmtShort(dates.maxEnd);
+  }
+
+  // Alerte visa : "expired" si déjà expiré, "soon" si expiration dans moins
+  // de 4 mois, sinon null. Identique à la logique de fiche.html.
+  function isVisaExpiringSoon(dateExpirationVisa) {
+    if (!dateExpirationVisa) return null;
+    const expDate = new Date(dateExpirationVisa + "T00:00:00");
+    const now = new Date();
+    if (expDate < now) return "expired";
+    const alertThreshold = addMonths(now, 4);
+    return expDate <= alertThreshold ? "soon" : null;
+  }
+
+  // Ligne d'action affichée sur la carte pour rappeler la date-limite de
+  // décision sur la période d'essai — seulement tant que le champ "Période
+  // d'essai validée" n'a pas été passé à "Oui" sur la fiche.
   function essaiActionLine(emp) {
     if (emp.essaiValidee === "oui") return null;
     const dates = computeEssaiDates(emp);
@@ -365,14 +397,31 @@
     return "Période d'essai dépassée — décision à prendre";
   }
 
+  // Provisoire côté client : tant que le nouveau backend .gs (qui filtre déjà
+  // Hiring-Front côté serveur) n'est pas redéployé sur Apps Script, on exclut
+  // ici les salariés cuisine / Hiring-Back pour que l'aperçu soit correct.
   const NON_HIRING_FRONT_IDS = ["elena-misiego", "nicola-baron", "lucia-curiel", "ivan", "kartika", "sofia", "godwin", "baby-john"];
+
+  // Salariés qui ne sont pas "Current" + "Hired" dans l'onglet Hiring-Front
+  // (Léa Benoît, Yohan Doudié et Sarah Auber-Yvars y sont marqués "Old" ;
+  // Mathurin Jeannes n'y apparaît pas). Pablo Acevedo et Lucas Rohan sont
+  // gardés à la demande d'Adrien même s'ils ne matchent pas Current+Hired.
   const NOT_CURRENT_HIRED_IDS = ["lea-benoit", "yohan-doudie", "sarah-auber-yvars", "mathurin-jeannes"];
+
+  // Dates de recrutement absentes du roster côté Sheet, données par Adrien.
+  // Provisoire côté client tant que la Sheet elle-même n'a pas ces cellules
+  // remplies (colonne DateRecrutement, onglet Roster).
   const DATE_OVERRIDES = { "lucas-rohan": "2026-08-19", "pablo-acevedo": "2026-07-25" };
   function applyDateOverrides(list) {
     list.forEach(emp => { if (!emp.dateRecrutement && DATE_OVERRIDES[emp.id]) emp.dateRecrutement = DATE_OVERRIDES[emp.id]; });
     return list;
   }
 
+  // Pablo Acevedo et Pablo Castrillon sont en fait la même personne (Pablo
+  // Acevedo Castrillon, Chef de rang) — confirmé par Adrien le 2026-08-10.
+  // Provisoire côté client tant qu'Adrien n'a pas exécuté mergePabloDuplicate()
+  // côté Apps Script : on renomme "pablo-acevedo" et on retire le doublon
+  // "pablo-castrillon" de la liste.
   const NAME_OVERRIDES = { "pablo-acevedo": "Pablo Acevedo Castrillon" };
   const MERGED_DUPLICATE_IDS = ["pablo-castrillon"];
   function applyNameOverrides(list) {
@@ -380,6 +429,11 @@
     return list;
   }
 
+  // Gustavo Meaurio, communiqué par Adrien le 2026-08-10, absent du roster
+  // Google Sheet pour l'instant. Provisoire côté client tant qu'Adrien n'a pas
+  // exécuté addGustavoMeaurio() côté Apps Script : on l'injecte ici pour que
+  // l'aperçu soit correct, uniquement s'il n'est pas déjà remonté par l'API
+  // (pour ne pas le dupliquer une fois ajouté côté Sheet).
   const SYNTHETIC_EMPLOYEES = [
     { id: "gustavo-meaurio", nom: "Gustavo Meaurio", poste: "Manager", categorie: "", typeContrat: "CDI", dateRecrutement: "2025-10-23", dateFinCDD: "", essaiValidee: "oui", statut: "Actif", notes: "" },
   ];
@@ -479,7 +533,24 @@
     essaiSpan.textContent = essai.label;
     metaRow.appendChild(essaiSpan);
 
+    const visaExpiring = emp.nationalite === "Non Europe" ? isVisaExpiringSoon(emp.dateExpirationVisa) : null;
+    if (visaExpiring) {
+      const visaSpan = document.createElement("span");
+      visaSpan.className = "meta-badge meta-warning";
+      visaSpan.textContent = visaExpiring === "expired" ? "⚠️ Visa expiré" : "⚠️ Visa expire bientôt";
+      metaRow.appendChild(visaSpan);
+    }
+
     main.appendChild(metaRow);
+
+    const essaiDates = essaiDatesLine(emp);
+    if (essaiDates) {
+      const essaiDatesEl = document.createElement("div");
+      essaiDatesEl.className = "meta-item";
+      essaiDatesEl.style.marginTop = "4px";
+      essaiDatesEl.textContent = essaiDates;
+      main.appendChild(essaiDatesEl);
+    }
 
     const progressEl = document.createElement("div");
     progressEl.className = "employee-progress";
@@ -525,6 +596,7 @@
 
   loadRoster();
 
+  // ---------- Actualiser depuis Hiring - Front ----------
   document.getElementById("syncHiringBtn").addEventListener("click", () => {
     const btn = document.getElementById("syncHiringBtn");
     const msg = document.getElementById("syncHiringMsg");
@@ -538,9 +610,10 @@
       .then(res => {
         btn.disabled = false;
         if (res.error) { msg.textContent = res.error; return; }
-        msg.textContent = res.count > 0
-          ? res.count + " nouveau" + (res.count > 1 ? "x" : "") + " salarié" + (res.count > 1 ? "s" : "") + " ajouté" + (res.count > 1 ? "s" : "") + " : " + res.added.join(", ")
-          : "Aucun nouveau salarié.";
+        const parts = [];
+        if (res.count > 0) parts.push(res.count + " nouveau" + (res.count > 1 ? "x" : "") + " salarié" + (res.count > 1 ? "s" : "") + " ajouté" + (res.count > 1 ? "s" : "") + " : " + res.added.join(", "));
+        if (res.updatedCount > 0) parts.push(res.updatedCount + " mis" + (res.updatedCount > 1 ? "" : "") + " à jour : " + res.updated.join(", "));
+        msg.textContent = parts.length ? parts.join(" · ") : "Rien à actualiser, tout est déjà à jour.";
         loadRoster();
       })
       .catch(() => {
@@ -549,10 +622,12 @@
       });
   });
 
+  // ---------- Process de recrutement (repliable) ----------
   document.getElementById("processCardTitle").addEventListener("click", () => {
     document.getElementById("processCard").classList.toggle("collapsed");
   });
 
+  // ---------- PIN gate ----------
   (function () {
     const PASSWORD = "Barcelona2025!";
     const pinScreen = document.getElementById("pinScreen");
