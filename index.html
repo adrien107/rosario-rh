@@ -385,15 +385,15 @@
     return expDate <= alertThreshold ? "soon" : null;
   }
 
-  // Ligne d'action affichée sur la carte pour rappeler la date-limite de
-  // décision sur la période d'essai — seulement tant que le champ "Période
-  // d'essai validée" n'a pas été passé à "Oui" sur la fiche.
+  // Ligne d'action affichée sur la carte uniquement quand la période d'essai
+  // est dépassée sans décision prise — la date de fin elle-même est déjà
+  // affichée plus haut (badge + essaiDatesLine), pas besoin de la répéter ici.
   function essaiActionLine(emp) {
     if (emp.essaiValidee === "oui") return null;
     const dates = computeEssaiDates(emp);
     if (!dates) return null;
     const now = new Date();
-    if (now < dates.maxEnd) return "Fin de période d'essai : " + fmtDateFr(dates.maxEnd);
+    if (now < dates.maxEnd) return null;
     return "Période d'essai dépassée — décision à prendre";
   }
 
