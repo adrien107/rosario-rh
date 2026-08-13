@@ -473,7 +473,7 @@
 
   function loadRoster() {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_") === 0) {
-      const msg = '<div class="error-state">Apps Script pas encore configuré : colle l'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
+      const msg = '<div class="error-state">Apps Script pas encore configuré : colle l\'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
       employeeListSalleEl.innerHTML = msg;
       employeeListBarEl.innerHTML = msg;
       employeeListManagerEl.innerHTML = msg;
@@ -505,7 +505,7 @@
 
       })
       .catch(() => {
-        const msg = '<div class="error-state">Connexion impossible à l'Apps Script.</div>';
+        const msg = '<div class="error-state">Connexion impossible à l\'Apps Script.</div>';
         employeeListSalleEl.innerHTML = msg;
         employeeListBarEl.innerHTML = msg;
         employeeListManagerEl.innerHTML = msg;
