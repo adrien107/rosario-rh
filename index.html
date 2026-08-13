@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -94,6 +95,26 @@
   .progress-line:first-child { margin-top: 0; }
   .progress-line.action-line { color: var(--accent); font-weight: 600; }
   .progress-line.action-line strong { color: var(--accent); }
+
+  .sujet-en-cours-box {
+    background: var(--accent-soft);
+    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+  .sujet-en-cours-box .sujet-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
 
   .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
   .error-state { color: var(--accent); }
@@ -228,6 +249,8 @@
 
       <div class="process-step">
         <div class="process-num">2</div>
+
+
         <div>
           <div class="process-title">Trial</div>
           <div class="process-meta">2h (11h30–14h)</div>
@@ -385,18 +408,6 @@
     return expDate <= alertThreshold ? "soon" : null;
   }
 
-  // Ligne d'action affichée sur la carte uniquement quand la période d'essai
-  // est dépassée sans décision prise — la date de fin elle-même est déjà
-  // affichée plus haut (badge + essaiDatesLine), pas besoin de la répéter ici.
-  function essaiActionLine(emp) {
-    if (emp.essaiValidee === "oui") return null;
-    const dates = computeEssaiDates(emp);
-    if (!dates) return null;
-    const now = new Date();
-    if (now < dates.maxEnd) return null;
-    return "Période d'essai dépassée — décision à prendre";
-  }
-
   // Provisoire côté client : tant que le nouveau backend .gs (qui filtre déjà
   // Hiring-Front côté serveur) n'est pas redéployé sur Apps Script, on exclut
   // ici les salariés cuisine / Hiring-Back pour que l'aperçu soit correct.
@@ -462,7 +473,7 @@
 
   function loadRoster() {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_") === 0) {
-      const msg = '<div class="error-state">Apps Script pas encore configuré : colle l\'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
+      const msg = '<div class="error-state">Apps Script pas encore configuré : colle l'URL de déploiement dans APPS_SCRIPT_URL en haut du fichier.</div>';
       employeeListSalleEl.innerHTML = msg;
       employeeListBarEl.innerHTML = msg;
       employeeListManagerEl.innerHTML = msg;
@@ -490,9 +501,11 @@
         renderList(employeeListSalleEl, salle);
         renderList(employeeListBarEl, bar);
         renderList(employeeListManagerEl, manager);
+
+
       })
       .catch(() => {
-        const msg = '<div class="error-state">Connexion impossible à l\'Apps Script.</div>';
+        const msg = '<div class="error-state">Connexion impossible à l'Apps Script.</div>';
         employeeListSalleEl.innerHTML = msg;
         employeeListBarEl.innerHTML = msg;
         employeeListManagerEl.innerHTML = msg;
@@ -516,6 +529,19 @@
     roleEl.className = "employee-role";
     roleEl.textContent = emp.poste || "—";
     main.appendChild(roleEl);
+
+    // Sujet en cours (ex : "demande un changement de contrat", "problème avec
+    // la mutuelle") — affiché juste sous le nom/poste, tout en haut de la
+    // carte, pour être visible directement depuis l'index sans ouvrir la
+    // fiche. N'apparaît que si un sujet a été renseigné.
+    const sujetEnCours = (emp.sujetEnCours || "").trim();
+    if (sujetEnCours) {
+      const sujetBox = document.createElement("div");
+      sujetBox.className = "sujet-en-cours-box";
+      sujetBox.innerHTML = '<span class="sujet-label">Sujet en cours</span><span></span>';
+      sujetBox.querySelector("span:last-child").textContent = sujetEnCours;
+      main.appendChild(sujetBox);
+    }
 
     const metaRow = document.createElement("div");
     metaRow.className = "employee-meta";
@@ -594,6 +620,18 @@
     return a;
   }
 
+  // Ligne d'action affichée sur la carte uniquement quand la période d'essai
+  // est dépassée sans décision prise — la date de fin elle-même est déjà
+  // affichée plus haut (badge + essaiDatesLine), pas besoin de la répéter ici.
+  function essaiActionLine(emp) {
+    if (emp.essaiValidee === "oui") return null;
+    const dates = computeEssaiDates(emp);
+    if (!dates) return null;
+    const now = new Date();
+    if (now < dates.maxEnd) return null;
+    return "Période d'essai dépassée — décision à prendre";
+  }
+
   loadRoster();
 
   // ---------- Actualiser depuis Hiring - Front ----------
@@ -657,3 +695,4 @@
 </script>
 </body>
 </html>
+
