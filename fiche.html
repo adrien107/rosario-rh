@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -198,6 +199,21 @@
   <div id="content" style="display:none;">
 
     <div class="card">
+      <p class="card-title">Sujet en cours<button type="button" class="btn-secondary btn-small" id="editSujetBtn" style="text-transform:none; letter-spacing:normal; font-weight:600;">Modifier</button></p>
+      <div id="sujetReadView">
+        <p class="essai-placeholder">Aucun sujet en cours.</p>
+      </div>
+      <div id="sujetEditView" style="display:none;">
+        <div class="field">
+          <textarea id="fSujetEnCours" placeholder="Ex : demande un changement de contrat, problème avec la mutuelle…"></textarea>
+        </div>
+        <button class="btn-primary btn-small" id="saveSujetBtn">Enregistrer</button>
+        <button class="btn-secondary btn-small" id="cancelSujetBtn">Annuler</button>
+        <div class="status-msg" id="sujetStatusMsg"></div>
+      </div>
+    </div>
+
+    <div class="card">
       <p class="card-title">Informations contrat<button type="button" class="btn-secondary btn-small" id="editEmployeeBtn" style="text-transform:none; letter-spacing:normal; font-weight:600;">Modifier</button></p>
 
       <div id="employeeReadView">
@@ -233,6 +249,8 @@
               <select id="fTypeContrat">
                 <option value="">— À définir —</option>
                 <option value="CDI">CDI</option>
+
+
                 <option value="CDD">CDD</option>
               </select>
             </div>
@@ -448,10 +466,52 @@
     toggleVisaField();
     renderEmployeeReadView();
     renderEssaiValideeReadView();
+    renderSujetEnCours();
 
     renderEssai();
     renderBlocks();
   }
+
+  // ---------- Sujet en cours (lecture seule + Modifier) ----------
+  // Champ libre, ponctuel (ex : "demande un changement de contrat", "problème
+  // avec la mutuelle") — distinct du suivi des étapes RH ci-dessous. Affiché
+  // aussi directement sur la carte de l'employé dans le roster (index.html).
+  function renderSujetEnCours() {
+    const el = document.getElementById("sujetReadView");
+    const val = (employeeData.sujetEnCours || "").trim();
+    if (val) {
+      el.innerHTML = '<div class="prev-box" style="margin-bottom:0;"><p style="margin:0; white-space:pre-wrap;"></p></div>';
+      el.querySelector("p").textContent = val;
+    } else {
+      el.innerHTML = '<p class="essai-placeholder">Aucun sujet en cours.</p>';
+    }
+  }
+
+  document.getElementById("editSujetBtn").addEventListener("click", () => {
+    document.getElementById("fSujetEnCours").value = employeeData.sujetEnCours || "";
+    document.getElementById("sujetReadView").style.display = "none";
+    document.getElementById("sujetEditView").style.display = "block";
+  });
+  document.getElementById("cancelSujetBtn").addEventListener("click", () => {
+    document.getElementById("sujetEditView").style.display = "none";
+    document.getElementById("sujetReadView").style.display = "block";
+  });
+  document.getElementById("saveSujetBtn").addEventListener("click", () => {
+    const msg = document.getElementById("sujetStatusMsg");
+    const val = document.getElementById("fSujetEnCours").value;
+    msg.textContent = "Enregistrement…";
+    apiPost({ action: "updateEmployee", id: employeeId, SujetEnCours: val }).then(res => {
+
+
+      if (res.error) { msg.textContent = res.error; return; }
+      employeeData.sujetEnCours = val;
+      renderSujetEnCours();
+      document.getElementById("sujetEditView").style.display = "none";
+      document.getElementById("sujetReadView").style.display = "block";
+      msg.textContent = "Enregistré.";
+      setTimeout(() => { msg.textContent = ""; }, 2500);
+    }).catch(() => { msg.textContent = "Connexion impossible."; });
+  });
 
   // ---------- Informations contrat (lecture seule + Modifier) ----------
   function toggleCDDField() {
@@ -693,6 +753,8 @@
       if (contractDays <= 183) {
         essaiDays = Math.min(Math.ceil(contractDays / 7), 14);
       } else {
+
+
         essaiDays = 30;
       }
       initialEnd = new Date(hireDate.getTime() + essaiDays * 86400000);
@@ -742,7 +804,7 @@
     }
     el.innerHTML = html;
     if (essaiOver) {
-      el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">Période d\'essai terminée ou validée : les délais courts de rupture d\'essai ne s\'appliquent plus. Le préavis ci-dessus est celui de la convention collective HCR (IDCC 1979) selon la catégorie et l\'ancienneté — à confirmer avec un conseil juridique avant toute décision de rupture.</p>';
+      el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">Période d'essai terminée ou validée : les délais courts de rupture d'essai ne s'appliquent plus. Le préavis ci-dessus est celui de la convention collective HCR (IDCC 1979) selon la catégorie et l'ancienneté — à confirmer avec un conseil juridique avant toute décision de rupture.</p>';
     }
     if (r.note) el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">' + r.note + '</p>';
     function row(k, v) { return '<div class="essai-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
@@ -789,7 +851,7 @@
       if (d.pointsPositifs) html += '<p>✓ ' + escapeHtml(d.pointsPositifs) + '</p>';
       if (d.axesAmelioration) html += '<p>△ ' + escapeHtml(d.axesAmelioration) + '</p>';
     });
-    if (!hasAny) html += "<p class=\"prev-empty\">Pas encore de points positifs ou d'axes d'amélioration enregistrés.</p>";
+    if (!hasAny) html += "<p class="prev-empty">Pas encore de points positifs ou d'axes d'amélioration enregistrés.</p>";
     wrap.innerHTML = html;
     return wrap;
   }
@@ -944,6 +1006,8 @@
       return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     }
 
+
+
     function refreshCalLink() {
       const val = etapeSelect.value;
       const show = val === "a_planifier" || val === "planifie";
@@ -978,7 +1042,7 @@
     const scheduleRow = document.createElement("div");
     scheduleRow.className = "schedule-row";
     const dateWrap = document.createElement("div");
-    dateWrap.innerHTML = "<label>Date de l'entretien</label><input type=\"date\" class=\"f-interview-date\">";
+    dateWrap.innerHTML = "<label>Date de l'entretien</label><input type="date" class="f-interview-date">";
     const dateInput = dateWrap.querySelector("input");
     dateInput.value = data.interviewDate || "";
     scheduleRow.appendChild(dateWrap);
@@ -1123,3 +1187,4 @@
 </script>
 </body>
 </html>
+
