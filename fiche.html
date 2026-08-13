@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -804,7 +803,7 @@
     }
     el.innerHTML = html;
     if (essaiOver) {
-      el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">Période d'essai terminée ou validée : les délais courts de rupture d'essai ne s'appliquent plus. Le préavis ci-dessus est celui de la convention collective HCR (IDCC 1979) selon la catégorie et l'ancienneté — à confirmer avec un conseil juridique avant toute décision de rupture.</p>';
+      el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">Période d\'essai terminée ou validée : les délais courts de rupture d\'essai ne s\'appliquent plus. Le préavis ci-dessus est celui de la convention collective HCR (IDCC 1979) selon la catégorie et l\'ancienneté — à confirmer avec un conseil juridique avant toute décision de rupture.</p>';
     }
     if (r.note) el.innerHTML += '<p class="essai-placeholder" style="margin-top:10px;">' + r.note + '</p>';
     function row(k, v) { return '<div class="essai-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
@@ -851,7 +850,7 @@
       if (d.pointsPositifs) html += '<p>✓ ' + escapeHtml(d.pointsPositifs) + '</p>';
       if (d.axesAmelioration) html += '<p>△ ' + escapeHtml(d.axesAmelioration) + '</p>';
     });
-    if (!hasAny) html += "<p class="prev-empty">Pas encore de points positifs ou d'axes d'amélioration enregistrés.</p>";
+    if (!hasAny) html += "<p class=\"prev-empty\">Pas encore de points positifs ou d'axes d'amélioration enregistrés.</p>";
     wrap.innerHTML = html;
     return wrap;
   }
@@ -1042,7 +1041,7 @@
     const scheduleRow = document.createElement("div");
     scheduleRow.className = "schedule-row";
     const dateWrap = document.createElement("div");
-    dateWrap.innerHTML = "<label>Date de l'entretien</label><input type="date" class="f-interview-date">";
+    dateWrap.innerHTML = "<label>Date de l'entretien</label><input type=\"date\" class=\"f-interview-date\">";
     const dateInput = dateWrap.querySelector("input");
     dateInput.value = data.interviewDate || "";
     scheduleRow.appendChild(dateWrap);
