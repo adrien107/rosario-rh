@@ -154,6 +154,10 @@
 
   .visa-field { display: none; }
   .visa-alert { background: var(--accent-soft); color: var(--accent); font-size: 12.5px; font-weight: 600; padding: 8px 12px; border-radius: 8px; margin: 4px 0 14px; }
+  .depart-field { display: none; }
+  .depart-checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; }
+  .depart-checkbox-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; flex-shrink: 0; }
+  .depart-checkbox-row span { text-transform: none; font-weight: 600; font-size: 14px; color: var(--ink); letter-spacing: normal; }
 
   .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
   .error-state { color: var(--accent); }
@@ -229,6 +233,14 @@
           <span class="k">Période d'essai</span>
           <span class="v" style="font-weight:400; color:var(--muted); font-size:12.5px; text-align:right;">2 mois + renouvellement automatique de 2 mois (4 mois au total)</span>
         </div>
+        <div id="roDepartSection" style="display:none;">
+          <div class="subsection-divider"><p class="subsection-title" style="margin-top:0;">Départ</p></div>
+          <div class="essai-row"><span class="k">Raison</span><span class="v" id="roRaisonDepart">—</span></div>
+          <div class="essai-row"><span class="k">Date de départ</span><span class="v" id="roDateDepart">—</span></div>
+          <div class="essai-row" id="roCommentairesDepartRow" style="display:none;"><span class="k">Commentaires</span><span class="v" id="roCommentairesDepart" style="text-align:left; max-width:60%; white-space:pre-wrap;">—</span></div>
+          <div class="essai-row"><span class="k">STC versé</span><span class="v" id="roSTCVerse">—</span></div>
+          <div id="roSTCAlert" class="visa-alert" style="display:none;">⚠️ STC non versé</div>
+        </div>
       </div>
 
       <div id="employeeEditView" style="display:none;">
@@ -248,8 +260,6 @@
               <select id="fTypeContrat">
                 <option value="">— À définir —</option>
                 <option value="CDI">CDI</option>
-
-
                 <option value="CDD">CDD</option>
               </select>
             </div>
@@ -284,6 +294,49 @@
               <label for="fDateExpirationVisa">Date d'expiration visa</label>
               <input type="date" id="fDateExpirationVisa">
             </div>
+          </div>
+
+          <div class="subsection-divider"><p class="subsection-title" style="margin-top:0;">Départ</p></div>
+          <div class="field">
+            <label class="depart-checkbox-row" for="fEnDepart" style="text-transform:none; letter-spacing:normal; margin-bottom:0;">
+              <input type="checkbox" id="fEnDepart">
+              <span>Employé sur le départ</span>
+            </label>
+          </div>
+          <div id="fDepartFieldsWrap" style="display:none;">
+            <div class="field-row">
+              <div class="field">
+                <label for="fRaisonDepart">Raison</label>
+                <select id="fRaisonDepart">
+                  <option value="">— À définir —</option>
+                  <option value="demission">Démission</option>
+                  <option value="fin_pe">Fin de période d'essai</option>
+                  <option value="licenciement">Licenciement</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="fDateDepart">Date de départ</label>
+                <input type="date" id="fDateDepart">
+              </div>
+            </div>
+            <div class="field">
+              <label for="fCommentairesDepart">Commentaires</label>
+              <textarea id="fCommentairesDepart" placeholder="Message optionnel…"></textarea>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="fSTCVerse">STC versé</label>
+                <select id="fSTCVerse">
+                  <option value="non">Non</option>
+                  <option value="oui">Oui</option>
+                </select>
+              </div>
+              <div class="field depart-field" id="fDateSTCVerseWrap">
+                <label for="fDateSTCVerse">Date de versement STC</label>
+                <input type="date" id="fDateSTCVerse">
+              </div>
+            </div>
+            <div id="fSTCAlert" class="visa-alert" style="display:none;">⚠️ STC non versé — à régulariser.</div>
           </div>
         </div>
         <button class="btn-primary btn-small" id="saveEmployeeBtn" style="margin-top:14px;">Enregistrer</button>
@@ -461,8 +514,15 @@
     document.getElementById("fTypeVisa").value = employeeData.typeVisa || "";
     document.getElementById("fDateExpirationVisa").value = employeeData.dateExpirationVisa || "";
     document.getElementById("fEssaiValidee").value = employeeData.essaiValidee === "oui" ? "oui" : "en_cours";
+    document.getElementById("fEnDepart").checked = employeeData.enDepart === "oui";
+    document.getElementById("fRaisonDepart").value = employeeData.raisonDepart || "";
+    document.getElementById("fDateDepart").value = employeeData.dateDepart || "";
+    document.getElementById("fCommentairesDepart").value = employeeData.commentairesDepart || "";
+    document.getElementById("fSTCVerse").value = employeeData.stcVerse === "oui" ? "oui" : "non";
+    document.getElementById("fDateSTCVerse").value = employeeData.dateSTCVerse || "";
     toggleCDDField();
     toggleVisaField();
+    toggleDepartFields();
     renderEmployeeReadView();
     renderEssaiValideeReadView();
     renderSujetEnCours();
@@ -500,8 +560,6 @@
     const val = document.getElementById("fSujetEnCours").value;
     msg.textContent = "Enregistrement…";
     apiPost({ action: "updateEmployee", id: employeeId, SujetEnCours: val }).then(res => {
-
-
       if (res.error) { msg.textContent = res.error; return; }
       employeeData.sujetEnCours = val;
       renderSujetEnCours();
@@ -522,11 +580,25 @@
     document.getElementById("fDateExpirationVisaWrap").style.display = nonEurope ? "block" : "none";
     document.getElementById("fVisaAlert").style.display = nonEurope ? "block" : "none";
   }
+  // ---------- Sur le départ (suivi indépendant — ne change jamais le Statut
+  // Actif/Sorti de l'employé, décision Adrien du 2026-08-14) ----------
+  function toggleDepartFields() {
+    const on = document.getElementById("fEnDepart").checked;
+    document.getElementById("fDepartFieldsWrap").style.display = on ? "block" : "none";
+    if (on) toggleSTCField();
+  }
+  function toggleSTCField() {
+    const paid = document.getElementById("fSTCVerse").value === "oui";
+    document.getElementById("fDateSTCVerseWrap").style.display = paid ? "block" : "none";
+    document.getElementById("fSTCAlert").style.display = paid ? "none" : "block";
+  }
   document.getElementById("fTypeContrat").addEventListener("change", () => { toggleCDDField(); renderEssai(); });
   document.getElementById("fCategorie").addEventListener("change", renderEssai);
   document.getElementById("fDateRecrutement").addEventListener("change", renderEssai);
   document.getElementById("fDateFinCDD").addEventListener("change", renderEssai);
   document.getElementById("fNationalite").addEventListener("change", toggleVisaField);
+  document.getElementById("fEnDepart").addEventListener("change", toggleDepartFields);
+  document.getElementById("fSTCVerse").addEventListener("change", toggleSTCField);
 
   function renderEmployeeReadView() {
     document.getElementById("roCategorie").textContent = employeeData.categorie || "— À définir —";
@@ -564,6 +636,28 @@
       dateExpirationVisaRow.style.display = "none";
       expiringAlert.style.display = "none";
     }
+
+    const departSection = document.getElementById("roDepartSection");
+    const enDepart = employeeData.enDepart === "oui";
+    departSection.style.display = enDepart ? "block" : "none";
+    if (enDepart) {
+      const raisonLabels = { demission: "Démission", fin_pe: "Fin de période d'essai", licenciement: "Licenciement" };
+      document.getElementById("roRaisonDepart").textContent = raisonLabels[employeeData.raisonDepart] || "— À définir —";
+      document.getElementById("roDateDepart").textContent = employeeData.dateDepart ? fmtDateFr(new Date(employeeData.dateDepart + "T00:00:00")) : "— À définir —";
+      const commentairesRow = document.getElementById("roCommentairesDepartRow");
+      const commentaires = (employeeData.commentairesDepart || "").trim();
+      if (commentaires) {
+        commentairesRow.style.display = "flex";
+        document.getElementById("roCommentairesDepart").textContent = commentaires;
+      } else {
+        commentairesRow.style.display = "none";
+      }
+      const stcPaid = employeeData.stcVerse === "oui";
+      document.getElementById("roSTCVerse").textContent = stcPaid
+        ? "Oui" + (employeeData.dateSTCVerse ? " (" + fmtDateFr(new Date(employeeData.dateSTCVerse + "T00:00:00")) + ")" : "")
+        : "Non";
+      document.getElementById("roSTCAlert").style.display = stcPaid ? "none" : "block";
+    }
   }
 
   // Renvoie "expired" si la date d'expiration du visa est déjà dépassée,
@@ -589,8 +683,15 @@
     document.getElementById("fNationalite").value = employeeData.nationalite || "";
     document.getElementById("fTypeVisa").value = employeeData.typeVisa || "";
     document.getElementById("fDateExpirationVisa").value = employeeData.dateExpirationVisa || "";
+    document.getElementById("fEnDepart").checked = employeeData.enDepart === "oui";
+    document.getElementById("fRaisonDepart").value = employeeData.raisonDepart || "";
+    document.getElementById("fDateDepart").value = employeeData.dateDepart || "";
+    document.getElementById("fCommentairesDepart").value = employeeData.commentairesDepart || "";
+    document.getElementById("fSTCVerse").value = employeeData.stcVerse === "oui" ? "oui" : "non";
+    document.getElementById("fDateSTCVerse").value = employeeData.dateSTCVerse || "";
     toggleCDDField();
     toggleVisaField();
+    toggleDepartFields();
     document.getElementById("employeeEditView").style.display = "none";
     document.getElementById("employeeReadView").style.display = "block";
   });
@@ -609,6 +710,12 @@
       VisaRequis: nonEurope ? "oui" : "non",
       TypeVisa: nonEurope ? document.getElementById("fTypeVisa").value : "",
       DateExpirationVisa: nonEurope ? document.getElementById("fDateExpirationVisa").value : "",
+      EnDepart: document.getElementById("fEnDepart").checked ? "oui" : "",
+      RaisonDepart: document.getElementById("fEnDepart").checked ? document.getElementById("fRaisonDepart").value : "",
+      DateDepart: document.getElementById("fEnDepart").checked ? document.getElementById("fDateDepart").value : "",
+      CommentairesDepart: document.getElementById("fEnDepart").checked ? document.getElementById("fCommentairesDepart").value : "",
+      STCVerse: document.getElementById("fEnDepart").checked ? document.getElementById("fSTCVerse").value : "",
+      DateSTCVerse: (document.getElementById("fEnDepart").checked && document.getElementById("fSTCVerse").value === "oui") ? document.getElementById("fDateSTCVerse").value : "",
     };
     msg.textContent = "Enregistrement…";
     apiPost(payload).then(res => {
@@ -621,6 +728,12 @@
       employeeData.visaRequis = payload.VisaRequis;
       employeeData.typeVisa = payload.TypeVisa;
       employeeData.dateExpirationVisa = payload.DateExpirationVisa;
+      employeeData.enDepart = payload.EnDepart;
+      employeeData.raisonDepart = payload.RaisonDepart;
+      employeeData.dateDepart = payload.DateDepart;
+      employeeData.commentairesDepart = payload.CommentairesDepart;
+      employeeData.stcVerse = payload.STCVerse;
+      employeeData.dateSTCVerse = payload.DateSTCVerse;
       renderEmployeeReadView();
       renderEssai();
       document.getElementById("employeeEditView").style.display = "none";
@@ -752,8 +865,6 @@
       if (contractDays <= 183) {
         essaiDays = Math.min(Math.ceil(contractDays / 7), 14);
       } else {
-
-
         essaiDays = 30;
       }
       initialEnd = new Date(hireDate.getTime() + essaiDays * 86400000);
@@ -1005,8 +1116,6 @@
       return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     }
 
-
-
     function refreshCalLink() {
       const val = etapeSelect.value;
       const show = val === "a_planifier" || val === "planifie";
@@ -1186,4 +1295,3 @@
 </script>
 </body>
 </html>
-
