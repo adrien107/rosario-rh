@@ -220,6 +220,12 @@
       <p class="card-title">Informations contrat<button type="button" class="btn-secondary btn-small" id="editEmployeeBtn" style="text-transform:none; letter-spacing:normal; font-weight:600;">Modifier</button></p>
 
       <div id="employeeReadView">
+        <div class="essai-row" style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--line);">
+          <span class="k">Statut</span>
+          <span class="v" style="display:flex; align-items:center; gap:10px;">
+            <span class="status-badge" id="roStatutBadge">—</span><button type="button" class="btn-secondary btn-small" id="toggleStatutBtn">Archiver</button>
+          </span>
+        </div>
         <div class="essai-row"><span class="k">Catégorie</span><span class="v" id="roCategorie">—</span></div>
         <div class="essai-row"><span class="k">Type de contrat</span><span class="v" id="roTypeContrat">—</span></div>
         <div class="essai-row"><span class="k">Date de recrutement</span><span class="v" id="roDateRecrutement">—</span></div>
@@ -524,12 +530,44 @@
     toggleVisaField();
     toggleDepartFields();
     renderEmployeeReadView();
+    renderStatutBadge();
     renderEssaiValideeReadView();
     renderSujetEnCours();
 
     renderEssai();
     renderBlocks();
   }
+
+  // ---------- Statut Actif / Archivé (bouton manuel, v6, 2026-08-14) ----------
+  // Indépendant du suivi "Sur le départ" ci-dessus (qui ne touche jamais au
+  // Statut). Permet d'archiver directement un employé (ex : départ non
+  // suivi via ce process) sans attendre un sync Hiring, et de le réactiver
+  // en cas d'erreur.
+  function renderStatutBadge() {
+    const badge = document.getElementById("roStatutBadge");
+    const btn = document.getElementById("toggleStatutBtn");
+    const archived = employeeData.statut === "Sorti";
+    badge.textContent = archived ? "Archivé" : "Actif";
+    badge.className = "status-badge " + (archived ? "status-neutral" : "status-ok");
+    btn.textContent = archived ? "Réactiver" : "Archiver";
+  }
+
+  document.getElementById("toggleStatutBtn").addEventListener("click", () => {
+    const archived = employeeData.statut === "Sorti";
+    const newStatut = archived ? "Actif" : "Sorti";
+    const confirmMsg = archived
+      ? "Réactiver " + employeeData.nom + " ? Il/elle réapparaîtra dans le roster actif."
+      : "Archiver " + employeeData.nom + " ? Il/elle n'apparaîtra plus dans le roster actif, mais restera visible dans \"Employés archivés\".";
+    if (!confirm(confirmMsg)) return;
+    const btn = document.getElementById("toggleStatutBtn");
+    btn.disabled = true;
+    apiPost({ action: "updateEmployee", id: employeeId, Statut: newStatut }).then(res => {
+      btn.disabled = false;
+      if (res.error) { alert(res.error); return; }
+      employeeData.statut = newStatut;
+      renderStatutBadge();
+    }).catch(() => { btn.disabled = false; alert("Connexion impossible."); });
+  });
 
   // ---------- Sujet en cours (lecture seule + Modifier) ----------
   // Champ libre, ponctuel (ex : "demande un changement de contrat", "problème
