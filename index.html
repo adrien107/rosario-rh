@@ -118,6 +118,26 @@
   .empty-state, .error-state { color: var(--muted); font-size: 13.5px; text-align: center; padding: 20px 4px; }
   .error-state { color: var(--accent); }
 
+  a.watch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent-soft);
+    color: var(--ink);
+    font-size: 12.5px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    text-decoration: none;
+    border: 1px solid transparent;
+  }
+  a.watch-row:hover { border-color: var(--accent); }
+  a.watch-row .watch-name { font-weight: 700; flex-shrink: 0; }
+  a.watch-row .watch-detail { color: var(--muted); text-align: right; }
+  .watch-subhead { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 8px; }
+  .watch-subhead:not(:first-child) { margin-top: 16px; }
+
   footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 24px; }
 
   .pin-screen {
@@ -342,6 +362,14 @@
       </div>
 
     </div>
+  </div>
+
+  <div class="card" id="watchCard">
+    <p class="card-title">Points de vigilance</p>
+    <p class="watch-subhead">Sujets en cours</p>
+    <div id="watchListSujets"><div class="empty-state">Aucun sujet en cours.</div></div>
+    <p class="watch-subhead">STC non versés</p>
+    <div id="watchListSTC"><div class="empty-state">Aucun STC en attente.</div></div>
   </div>
 
   <div class="card">
@@ -622,6 +650,30 @@
     return list;
   }
 
+  // Bloc "Points de vigilance" (v9) : petit résumé en haut de page listant
+  // les sujets en cours (champ libre SujetEnCours) et les STC non encore
+  // versés (EnDepart="oui" && STCVerse!=="oui", indépendant du Statut
+  // Actif/Sorti car un STC en attente reste un point à traiter même après
+  // le départ effectif). Chaque ligne renvoie vers la fiche concernée.
+  function renderWatchList(el, list, emptyMsg, detailFn) {
+    if (!list.length) { el.innerHTML = '<div class="empty-state">' + emptyMsg + '</div>'; return; }
+    el.innerHTML = "";
+    list.forEach(emp => {
+      const a = document.createElement("a");
+      a.className = "watch-row";
+      a.href = "fiche.html?id=" + encodeURIComponent(emp.id);
+      const nameEl = document.createElement("span");
+      nameEl.className = "watch-name";
+      nameEl.textContent = emp.nom;
+      const detailEl = document.createElement("span");
+      detailEl.className = "watch-detail";
+      detailEl.textContent = detailFn(emp);
+      a.appendChild(nameEl);
+      a.appendChild(detailEl);
+      el.appendChild(a);
+    });
+  }
+
   function renderList(el, list, emptyMsg) {
     if (!list.length) { el.innerHTML = '<div class="empty-state">' + (emptyMsg || "Aucun salarié.") + '</div>'; return; }
     el.innerHTML = "";
@@ -660,6 +712,24 @@
         function isArchived(emp) { return emp.statut === "Sorti"; }
         const active = data.filter(emp => !isArchived(emp));
         const archived = data.filter(emp => isArchived(emp));
+
+        // Points de vigilance (v9) : sujets en cours (actifs uniquement) et
+        // STC non versés (actifs ET archivés, un départ effectif n'annule
+        // pas le suivi du STC restant à payer).
+        const sujetsEnCours = active.filter(emp => (emp.sujetEnCours || "").trim());
+        const stcNonVerses = data.filter(emp => emp.enDepart === "oui" && emp.stcVerse !== "oui");
+        renderWatchList(
+          document.getElementById("watchListSujets"),
+          sujetsEnCours,
+          "Aucun sujet en cours.",
+          emp => (emp.sujetEnCours || "").trim()
+        );
+        renderWatchList(
+          document.getElementById("watchListSTC"),
+          stcNonVerses,
+          "Aucun STC en attente.",
+          emp => "STC non versé" + (emp.dateDepart ? " (départ " + fmtDateFr(new Date(emp.dateDepart + "T00:00:00")) + ")" : "")
+        );
 
         const manager = sortByAnciennete(active.filter(emp => isManager(emp)));
         const bar = sortByAnciennete(active.filter(emp => !isManager(emp) && isBar(emp)));
