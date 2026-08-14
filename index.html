@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -189,6 +188,11 @@
   .process-bullets { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink); line-height: 1.5; }
   .process-bullets li { margin-bottom: 3px; }
 
+  .archive-group { margin-bottom: 18px; }
+  .archive-group:last-child { margin-bottom: 0; }
+  .archive-subhead { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 8px; }
+  .depart-badge { background: #efece4; color: var(--muted); }
+
   .sync-row { margin-top: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .btn-sync {
     padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line);
@@ -222,6 +226,10 @@
       <button type="button" class="btn-sync" id="syncHiringBtn">Actualiser depuis Hiring</button>
       <span class="sync-msg" id="syncHiringMsg"></span>
     </div>
+    <div class="sync-row">
+      <button type="button" class="btn-sync" id="syncHiringKitchenBtn">Actualiser depuis Hiring - Kitchen</button>
+      <span class="sync-msg" id="syncHiringKitchenMsg"></span>
+    </div>
   </header>
 
   <div class="card process-card collapsed" id="processCard">
@@ -249,8 +257,6 @@
 
       <div class="process-step">
         <div class="process-num">2</div>
-
-
         <div>
           <div class="process-title">Trial</div>
           <div class="process-meta">2h (11h30–14h)</div>
@@ -315,9 +321,74 @@
   </div>
 
   <div class="card">
+    <p class="card-title">Chef</p>
+    <div id="employeeListChef">
+      <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Sous-Chef</p>
+    <div id="employeeListSousChef">
+      <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Commis</p>
+    <div id="employeeListCommis">
+      <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Plonge</p>
+    <div id="employeeListPlonge">
+      <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
+  <div class="card">
     <p class="card-title">Manager</p>
     <div id="employeeListManager">
       <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
+  <div class="card process-card collapsed" id="archiveCard">
+    <p class="card-title" id="archiveCardTitle">
+      <span>Employés archivés</span>
+      <span class="process-chevron">▾</span>
+    </p>
+    <div class="process-body-wrap">
+      <div class="archive-group">
+        <p class="archive-subhead">Salle</p>
+        <div id="archiveListSalle"><div class="empty-state">Aucun salarié archivé.</div></div>
+      </div>
+      <div class="archive-group">
+        <p class="archive-subhead">Bar</p>
+        <div id="archiveListBar"><div class="empty-state">Aucun salarié archivé.</div></div>
+      </div>
+      <div class="archive-group">
+        <p class="archive-subhead">Chef</p>
+        <div id="archiveListChef"><div class="empty-state">Aucun salarié archivé.</div></div>
+      </div>
+      <div class="archive-group">
+        <p class="archive-subhead">Sous-Chef</p>
+        <div id="archiveListSousChef"><div class="empty-state">Aucun salarié archivé.</div></div>
+      </div>
+      <div class="archive-group">
+        <p class="archive-subhead">Commis</p>
+        <div id="archiveListCommis"><div class="empty-state">Aucun salarié archivé.</div></div>
+      </div>
+      <div class="archive-group">
+        <p class="archive-subhead">Plonge</p>
+        <div id="archiveListPlonge"><div class="empty-state">Aucun salarié archivé.</div></div>
+      </div>
+      <div class="archive-group">
+        <p class="archive-subhead">Manager</p>
+        <div id="archiveListManager"><div class="empty-state">Aucun salarié archivé.</div></div>
+      </div>
     </div>
   </div>
 
@@ -331,13 +402,51 @@
 
   const employeeListSalleEl = document.getElementById("employeeListSalle");
   const employeeListBarEl = document.getElementById("employeeListBar");
+  const employeeListChefEl = document.getElementById("employeeListChef");
+  const employeeListSousChefEl = document.getElementById("employeeListSousChef");
+  const employeeListCommisEl = document.getElementById("employeeListCommis");
+  const employeeListPlongeEl = document.getElementById("employeeListPlonge");
   const employeeListManagerEl = document.getElementById("employeeListManager");
 
-  // Postes considérés comme "Bar" et "Manager" ; tout le reste (Chef de rang, Runner, etc.) = "Salle".
+  const archiveListSalleEl = document.getElementById("archiveListSalle");
+  const archiveListBarEl = document.getElementById("archiveListBar");
+  const archiveListChefEl = document.getElementById("archiveListChef");
+  const archiveListSousChefEl = document.getElementById("archiveListSousChef");
+  const archiveListCommisEl = document.getElementById("archiveListCommis");
+  const archiveListPlongeEl = document.getElementById("archiveListPlonge");
+  const archiveListManagerEl = document.getElementById("archiveListManager");
+
+  // Postes considérés comme "Bar" et "Manager" ; tout le reste (Chef de rang,
+  // Runner, etc.) = "Salle". Categorie (champ manuel sur la fiche) sert de
+  // filet de sécurité si un poste ne matche aucune liste ci-dessous.
   const BAR_POSTES = ["Barman", "Barmaid", "Bartender"];
   const MANAGER_POSTES = ["Manager"];
-  function isBar(emp) { return BAR_POSTES.indexOf(emp.poste) !== -1; }
-  function isManager(emp) { return MANAGER_POSTES.indexOf(emp.poste) !== -1; }
+  function isBar(emp) { return BAR_POSTES.indexOf(emp.poste) !== -1 || emp.categorie === "Bar"; }
+  function isManager(emp) { return MANAGER_POSTES.indexOf(emp.poste) !== -1 || emp.categorie === "Manager"; }
+
+  // Cuisine subdivisée en 4 sous-catégories (demande Adrien du 2026-08-14) :
+  // Chef, Sous-Chef, Commis, Plonge. classifyKitchen renvoie la clé de la
+  // sous-catégorie ou null si le salarié n'est pas en cuisine. Categorie
+  // (champ manuel sur la fiche) peut aussi porter directement le libellé
+  // exact d'une des 4 sous-catégories, en filet de sécurité.
+  const KITCHEN_SUBCATS = [
+    { key: "chef", label: "Chef", postes: ["Chef", "Chef de cuisine", "Executive Chef", "Head Chef"] },
+    { key: "sousChef", label: "Sous-Chef", postes: ["Sous-chef", "Junior Sous-chef", "Second de cuisine", "Chef de partie"] },
+    { key: "commis", label: "Commis", postes: ["Commis", "Commis de cuisine"] },
+    { key: "plonge", label: "Plonge", postes: ["Plongeur", "Plonge", "Kitchen Porter"] },
+  ];
+  function classifyKitchen(emp) {
+    const bySubcatLabel = KITCHEN_SUBCATS.find(sc => sc.label === emp.categorie);
+    if (bySubcatLabel) return bySubcatLabel.key;
+    const byPoste = KITCHEN_SUBCATS.find(sc => sc.postes.indexOf(emp.poste) !== -1);
+    if (byPoste) return byPoste.key;
+    // Salarié cuisine (categorie générique "Cuisine") dont le poste ne
+    // matche aucune sous-catégorie précise : rattaché à "Commis" par défaut
+    // plutôt que d'être perdu du roster.
+    if (emp.categorie === "Cuisine") return "commis";
+    return null;
+  }
+  function isKitchen(emp) { return classifyKitchen(emp) !== null; }
 
   // ---------- Période d'essai (identique au calcul de fiche.html, version condensée) ----------
   // Politique Rosario : 2 mois d'essai initial + 2 mois de renouvellement
@@ -408,6 +517,12 @@
     return expDate <= alertThreshold ? "soon" : null;
   }
 
+  // "Sur le départ" (suivi indépendant du Statut Actif/Sorti, décision Adrien
+  // du 2026-08-14) : alerte "STC non versé" affichée sur la carte tant que
+  // stcVerse n'est pas explicitement "oui" — visible aussi bien pour un
+  // employé encore actif que pour un employé déjà archivé.
+  function isStcUnpaidAlert(emp) { return emp.enDepart === "oui" && emp.stcVerse !== "oui"; }
+
   // Provisoire côté client : tant que le nouveau backend .gs (qui filtre déjà
   // Hiring-Front côté serveur) n'est pas redéployé sur Apps Script, on exclut
   // ici les salariés cuisine / Hiring-Back pour que l'aperçu soit correct.
@@ -465,8 +580,8 @@
     return list;
   }
 
-  function renderList(el, list) {
-    if (!list.length) { el.innerHTML = '<div class="empty-state">Aucun salarié.</div>'; return; }
+  function renderList(el, list, emptyMsg) {
+    if (!list.length) { el.innerHTML = '<div class="empty-state">' + (emptyMsg || "Aucun salarié.") + '</div>'; return; }
     el.innerHTML = "";
     list.forEach(emp => el.appendChild(renderEmployeeCard(emp)));
   }
@@ -489,25 +604,63 @@
           return;
         }
 
-        data = data.filter(emp => NON_HIRING_FRONT_IDS.indexOf(emp.id) === -1 && NOT_CURRENT_HIRED_IDS.indexOf(emp.id) === -1 && MERGED_DUPLICATE_IDS.indexOf(emp.id) === -1);
+        // Exclusion définitive : doublons / mauvaises données historiques
+        // (jamais des départs réels), à ne montrer ni dans le roster actif ni
+        // dans "Employés archivés".
+        data = data.filter(emp => NON_HIRING_FRONT_IDS.indexOf(emp.id) === -1 && MERGED_DUPLICATE_IDS.indexOf(emp.id) === -1);
         data = applyDateOverrides(data);
         data = applyNameOverrides(data);
         data = applySyntheticEmployees(data);
 
-        const manager = sortByAnciennete(data.filter(emp => isManager(emp)));
-        const salle = sortByAnciennete(data.filter(emp => !isBar(emp) && !isManager(emp)));
-        const bar = sortByAnciennete(data.filter(emp => isBar(emp)));
+        // Employés archivés (v7) : Statut = "Sorti" côté Sheet — plus filtré
+        // côté backend, c'est ici qu'on répartit entre roster actif et
+        // rubrique "Employés archivés", tout en gardant les mêmes catégories.
+        function isArchived(emp) { return emp.statut === "Sorti" || NOT_CURRENT_HIRED_IDS.indexOf(emp.id) !== -1; }
+        const active = data.filter(emp => !isArchived(emp));
+        const archived = data.filter(emp => isArchived(emp));
+
+        const manager = sortByAnciennete(active.filter(emp => isManager(emp)));
+        const bar = sortByAnciennete(active.filter(emp => !isManager(emp) && isBar(emp)));
+        const kitchenActive = active.filter(emp => !isManager(emp) && !isBar(emp) && isKitchen(emp));
+        const chef = sortByAnciennete(kitchenActive.filter(emp => classifyKitchen(emp) === "chef"));
+        const sousChef = sortByAnciennete(kitchenActive.filter(emp => classifyKitchen(emp) === "sousChef"));
+        const commis = sortByAnciennete(kitchenActive.filter(emp => classifyKitchen(emp) === "commis"));
+        const plonge = sortByAnciennete(kitchenActive.filter(emp => classifyKitchen(emp) === "plonge"));
+        const salle = sortByAnciennete(active.filter(emp => !isManager(emp) && !isBar(emp) && !isKitchen(emp)));
 
         renderList(employeeListSalleEl, salle);
         renderList(employeeListBarEl, bar);
+        renderList(employeeListChefEl, chef);
+        renderList(employeeListSousChefEl, sousChef);
+        renderList(employeeListCommisEl, commis);
+        renderList(employeeListPlongeEl, plonge);
         renderList(employeeListManagerEl, manager);
 
+        const archivedManager = sortByAnciennete(archived.filter(emp => isManager(emp)));
+        const archivedBar = sortByAnciennete(archived.filter(emp => !isManager(emp) && isBar(emp)));
+        const kitchenArchived = archived.filter(emp => !isManager(emp) && !isBar(emp) && isKitchen(emp));
+        const archivedChef = sortByAnciennete(kitchenArchived.filter(emp => classifyKitchen(emp) === "chef"));
+        const archivedSousChef = sortByAnciennete(kitchenArchived.filter(emp => classifyKitchen(emp) === "sousChef"));
+        const archivedCommis = sortByAnciennete(kitchenArchived.filter(emp => classifyKitchen(emp) === "commis"));
+        const archivedPlonge = sortByAnciennete(kitchenArchived.filter(emp => classifyKitchen(emp) === "plonge"));
+        const archivedSalle = sortByAnciennete(archived.filter(emp => !isManager(emp) && !isBar(emp) && !isKitchen(emp)));
 
+        renderList(archiveListSalleEl, archivedSalle, "Aucun salarié archivé.");
+        renderList(archiveListBarEl, archivedBar, "Aucun salarié archivé.");
+        renderList(archiveListChefEl, archivedChef, "Aucun salarié archivé.");
+        renderList(archiveListSousChefEl, archivedSousChef, "Aucun salarié archivé.");
+        renderList(archiveListCommisEl, archivedCommis, "Aucun salarié archivé.");
+        renderList(archiveListPlongeEl, archivedPlonge, "Aucun salarié archivé.");
+        renderList(archiveListManagerEl, archivedManager, "Aucun salarié archivé.");
       })
       .catch(() => {
         const msg = '<div class="error-state">Connexion impossible à l\'Apps Script.</div>';
         employeeListSalleEl.innerHTML = msg;
         employeeListBarEl.innerHTML = msg;
+        employeeListChefEl.innerHTML = msg;
+        employeeListSousChefEl.innerHTML = msg;
+        employeeListCommisEl.innerHTML = msg;
+        employeeListPlongeEl.innerHTML = msg;
         employeeListManagerEl.innerHTML = msg;
       });
   }
@@ -565,6 +718,19 @@
       visaSpan.className = "meta-badge meta-warning";
       visaSpan.textContent = visaExpiring === "expired" ? "⚠️ Visa expiré" : "⚠️ Visa expire bientôt";
       metaRow.appendChild(visaSpan);
+    }
+
+    if (emp.enDepart === "oui") {
+      const departSpan = document.createElement("span");
+      departSpan.className = "meta-badge depart-badge";
+      departSpan.textContent = "Sur le départ";
+      metaRow.appendChild(departSpan);
+    }
+    if (isStcUnpaidAlert(emp)) {
+      const stcSpan = document.createElement("span");
+      stcSpan.className = "meta-badge meta-warning";
+      stcSpan.textContent = "⚠️ STC non versé";
+      metaRow.appendChild(stcSpan);
     }
 
     main.appendChild(metaRow);
@@ -660,9 +826,40 @@
       });
   });
 
+  // ---------- Actualiser depuis Hiring - Kitchen ----------
+  document.getElementById("syncHiringKitchenBtn").addEventListener("click", () => {
+    const btn = document.getElementById("syncHiringKitchenBtn");
+    const msg = document.getElementById("syncHiringKitchenMsg");
+    btn.disabled = true;
+    msg.textContent = "Synchronisation…";
+    fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ key: ACCESS_KEY, action: "syncHiringKitchen" }),
+    })
+      .then(r => r.json())
+      .then(res => {
+        btn.disabled = false;
+        if (res.error) { msg.textContent = res.error; return; }
+        const parts = [];
+        if (res.count > 0) parts.push(res.count + " nouveau" + (res.count > 1 ? "x" : "") + " salarié" + (res.count > 1 ? "s" : "") + " ajouté" + (res.count > 1 ? "s" : "") + " : " + res.added.join(", "));
+        if (res.updatedCount > 0) parts.push(res.updatedCount + " mis" + (res.updatedCount > 1 ? "" : "") + " à jour : " + res.updated.join(", "));
+        msg.textContent = parts.length ? parts.join(" · ") : "Rien à actualiser, tout est déjà à jour.";
+        loadRoster();
+      })
+      .catch(() => {
+        btn.disabled = false;
+        msg.textContent = "Connexion impossible.";
+      });
+  });
+
   // ---------- Process de recrutement (repliable) ----------
   document.getElementById("processCardTitle").addEventListener("click", () => {
     document.getElementById("processCard").classList.toggle("collapsed");
+  });
+
+  // ---------- Employés archivés (repliable) ----------
+  document.getElementById("archiveCardTitle").addEventListener("click", () => {
+    document.getElementById("archiveCard").classList.toggle("collapsed");
   });
 
   // ---------- PIN gate ----------
@@ -695,4 +892,3 @@
 </script>
 </body>
 </html>
-
