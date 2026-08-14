@@ -202,6 +202,48 @@
   .btn-sync:hover { border-color: var(--accent); color: var(--accent); }
   .btn-sync:disabled { opacity: 0.6; cursor: default; }
   .sync-msg { font-size: 12px; color: var(--muted); }
+
+  /* Regroupement visuel Salle / Cuisine (demande Adrien du 2026-08-14) : un
+     bandeau de couleur en tête de groupe, puis chaque sous-catégorie comme
+     un bloc empilé à l'intérieur d'un même conteneur bordé, plutôt que des
+     cartes indépendantes de poids visuel identique. */
+  .section-group {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  .section-band {
+    padding: 10px 20px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #fff;
+  }
+  .section-band.salle-band { background: #3d5a6c; }
+  .section-band.cuisine-band { background: var(--accent); }
+  .subcard { padding: 20px; border-top: 1px solid var(--line); }
+  .subcard:first-of-type { border-top: none; }
+  .subcard-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted); margin: 0 0 14px;
+  }
+
+  .archive-section-band {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    margin: 6px 0 10px;
+  }
+  .archive-section-band.salle-band { background: #3d5a6c; }
+  .archive-section-band.cuisine-band { background: var(--accent); }
 </style>
 </head>
 <body>
@@ -223,12 +265,8 @@
     <h1>Suivi salariés</h1>
     <p class="subtitle">Grupo Domingo — liste des salariés actuels</p>
     <div class="sync-row">
-      <button type="button" class="btn-sync" id="syncHiringBtn">Actualiser depuis Hiring</button>
-      <span class="sync-msg" id="syncHiringMsg"></span>
-    </div>
-    <div class="sync-row">
-      <button type="button" class="btn-sync" id="syncHiringKitchenBtn">Actualiser depuis Hiring - Kitchen</button>
-      <span class="sync-msg" id="syncHiringKitchenMsg"></span>
+      <button type="button" class="btn-sync" id="syncAllBtn">Actualiser depuis Hiring (Salle + Cuisine)</button>
+      <span class="sync-msg" id="syncAllMsg"></span>
     </div>
   </header>
 
@@ -307,51 +345,53 @@
   </div>
 
   <div class="card">
-    <p class="card-title">Salle</p>
-    <div id="employeeListSalle">
-      <div class="empty-state">Chargement…</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <p class="card-title">Bar</p>
-    <div id="employeeListBar">
-      <div class="empty-state">Chargement…</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <p class="card-title">Chef</p>
-    <div id="employeeListChef">
-      <div class="empty-state">Chargement…</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <p class="card-title">Sous-Chef</p>
-    <div id="employeeListSousChef">
-      <div class="empty-state">Chargement…</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <p class="card-title">Commis</p>
-    <div id="employeeListCommis">
-      <div class="empty-state">Chargement…</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <p class="card-title">Plonge</p>
-    <div id="employeeListPlonge">
-      <div class="empty-state">Chargement…</div>
-    </div>
-  </div>
-
-  <div class="card">
     <p class="card-title">Manager</p>
     <div id="employeeListManager">
       <div class="empty-state">Chargement…</div>
+    </div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-band salle-band">Salle</div>
+    <div class="subcard">
+      <p class="subcard-title">Salle</p>
+      <div id="employeeListSalle">
+        <div class="empty-state">Chargement…</div>
+      </div>
+    </div>
+    <div class="subcard">
+      <p class="subcard-title">Bar</p>
+      <div id="employeeListBar">
+        <div class="empty-state">Chargement…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-band cuisine-band">Cuisine</div>
+    <div class="subcard">
+      <p class="subcard-title">Chef</p>
+      <div id="employeeListChef">
+        <div class="empty-state">Chargement…</div>
+      </div>
+    </div>
+    <div class="subcard">
+      <p class="subcard-title">Sous-Chef</p>
+      <div id="employeeListSousChef">
+        <div class="empty-state">Chargement…</div>
+      </div>
+    </div>
+    <div class="subcard">
+      <p class="subcard-title">Commis</p>
+      <div id="employeeListCommis">
+        <div class="empty-state">Chargement…</div>
+      </div>
+    </div>
+    <div class="subcard">
+      <p class="subcard-title">Plonge</p>
+      <div id="employeeListPlonge">
+        <div class="empty-state">Chargement…</div>
+      </div>
     </div>
   </div>
 
@@ -362,6 +402,12 @@
     </p>
     <div class="process-body-wrap">
       <div class="archive-group">
+        <p class="archive-subhead">Manager</p>
+        <div id="archiveListManager"><div class="empty-state">Aucun salarié archivé.</div></div>
+      </div>
+
+      <div class="archive-section-band salle-band">Salle</div>
+      <div class="archive-group">
         <p class="archive-subhead">Salle</p>
         <div id="archiveListSalle"><div class="empty-state">Aucun salarié archivé.</div></div>
       </div>
@@ -369,6 +415,8 @@
         <p class="archive-subhead">Bar</p>
         <div id="archiveListBar"><div class="empty-state">Aucun salarié archivé.</div></div>
       </div>
+
+      <div class="archive-section-band cuisine-band">Cuisine</div>
       <div class="archive-group">
         <p class="archive-subhead">Chef</p>
         <div id="archiveListChef"><div class="empty-state">Aucun salarié archivé.</div></div>
@@ -384,10 +432,6 @@
       <div class="archive-group">
         <p class="archive-subhead">Plonge</p>
         <div id="archiveListPlonge"><div class="empty-state">Aucun salarié archivé.</div></div>
-      </div>
-      <div class="archive-group">
-        <p class="archive-subhead">Manager</p>
-        <div id="archiveListManager"><div class="empty-state">Aucun salarié archivé.</div></div>
       </div>
     </div>
   </div>
@@ -523,16 +567,14 @@
   // employé encore actif que pour un employé déjà archivé.
   function isStcUnpaidAlert(emp) { return emp.enDepart === "oui" && emp.stcVerse !== "oui"; }
 
-  // Provisoire côté client : tant que le nouveau backend .gs (qui filtre déjà
-  // Hiring-Front côté serveur) n'est pas redéployé sur Apps Script, on exclut
-  // ici les salariés cuisine / Hiring-Back pour que l'aperçu soit correct.
-  const NON_HIRING_FRONT_IDS = ["elena-misiego", "nicola-baron", "lucia-curiel", "ivan", "kartika", "sofia", "godwin", "baby-john"];
-
-  // Salariés qui ne sont pas "Current" + "Hired" dans l'onglet Hiring-Front
-  // (Léa Benoît, Yohan Doudié et Sarah Auber-Yvars y sont marqués "Old" ;
-  // Mathurin Jeannes n'y apparaît pas). Pablo Acevedo et Lucas Rohan sont
-  // gardés à la demande d'Adrien même s'ils ne matchent pas Current+Hired.
-  const NOT_CURRENT_HIRED_IDS = ["lea-benoit", "yohan-doudie", "sarah-auber-yvars", "mathurin-jeannes"];
+  // NB (v8, 2026-08-14) : l'ancienne liste NON_HIRING_FRONT_IDS a été retirée
+  // d'ici — elle datait d'un nettoyage ponctuel de l'ancien SEED_ROSTER et
+  // masquait à tort des salariés cuisine bien réels une fois la sync
+  // Hiring-Kitchen mise en place (Elena Misiego, Nicola Baron, etc.). De même
+  // pour NOT_CURRENT_HIRED_IDS : ces 4 lignes ont été supprimées directement
+  // du Roster (cleanupBadEntries20260814 côté Apps Script) plutôt que
+  // masquées côté client. isArchived() ne se base donc plus que sur le champ
+  // Statut renvoyé par le backend.
 
   // Dates de recrutement absentes du roster côté Sheet, données par Adrien.
   // Provisoire côté client tant que la Sheet elle-même n'a pas ces cellules
@@ -604,10 +646,10 @@
           return;
         }
 
-        // Exclusion définitive : doublons / mauvaises données historiques
-        // (jamais des départs réels), à ne montrer ni dans le roster actif ni
-        // dans "Employés archivés".
-        data = data.filter(emp => NON_HIRING_FRONT_IDS.indexOf(emp.id) === -1 && MERGED_DUPLICATE_IDS.indexOf(emp.id) === -1);
+        // Exclusion définitive : doublon réel, à ne montrer ni dans le roster
+        // actif ni dans "Employés archivés" (voir mergePabloDuplicate côté
+        // Apps Script).
+        data = data.filter(emp => MERGED_DUPLICATE_IDS.indexOf(emp.id) === -1);
         data = applyDateOverrides(data);
         data = applyNameOverrides(data);
         data = applySyntheticEmployees(data);
@@ -615,7 +657,7 @@
         // Employés archivés (v7) : Statut = "Sorti" côté Sheet — plus filtré
         // côté backend, c'est ici qu'on répartit entre roster actif et
         // rubrique "Employés archivés", tout en gardant les mêmes catégories.
-        function isArchived(emp) { return emp.statut === "Sorti" || NOT_CURRENT_HIRED_IDS.indexOf(emp.id) !== -1; }
+        function isArchived(emp) { return emp.statut === "Sorti"; }
         const active = data.filter(emp => !isArchived(emp));
         const archived = data.filter(emp => isArchived(emp));
 
@@ -800,49 +842,30 @@
 
   loadRoster();
 
-  // ---------- Actualiser depuis Hiring - Front ----------
-  document.getElementById("syncHiringBtn").addEventListener("click", () => {
-    const btn = document.getElementById("syncHiringBtn");
-    const msg = document.getElementById("syncHiringMsg");
+  // ---------- Actualiser depuis Hiring (Salle + Cuisine, bouton unique v8) ----------
+  // Un seul appel serveur (syncHiringAll) qui enchaîne les deux sync (Front
+  // puis Kitchen) et renvoie les deux résultats séparément — voir
+  // syncFromHiringAll_ côté Apps Script.
+  document.getElementById("syncAllBtn").addEventListener("click", () => {
+    const btn = document.getElementById("syncAllBtn");
+    const msg = document.getElementById("syncAllMsg");
     btn.disabled = true;
     msg.textContent = "Synchronisation…";
     fetch(APPS_SCRIPT_URL, {
       method: "POST",
-      body: JSON.stringify({ key: ACCESS_KEY, action: "syncHiring" }),
+      body: JSON.stringify({ key: ACCESS_KEY, action: "syncHiringAll" }),
     })
       .then(r => r.json())
       .then(res => {
         btn.disabled = false;
         if (res.error) { msg.textContent = res.error; return; }
         const parts = [];
-        if (res.count > 0) parts.push(res.count + " nouveau" + (res.count > 1 ? "x" : "") + " salarié" + (res.count > 1 ? "s" : "") + " ajouté" + (res.count > 1 ? "s" : "") + " : " + res.added.join(", "));
-        if (res.updatedCount > 0) parts.push(res.updatedCount + " mis" + (res.updatedCount > 1 ? "" : "") + " à jour : " + res.updated.join(", "));
-        msg.textContent = parts.length ? parts.join(" · ") : "Rien à actualiser, tout est déjà à jour.";
-        loadRoster();
-      })
-      .catch(() => {
-        btn.disabled = false;
-        msg.textContent = "Connexion impossible.";
-      });
-  });
-
-  // ---------- Actualiser depuis Hiring - Kitchen ----------
-  document.getElementById("syncHiringKitchenBtn").addEventListener("click", () => {
-    const btn = document.getElementById("syncHiringKitchenBtn");
-    const msg = document.getElementById("syncHiringKitchenMsg");
-    btn.disabled = true;
-    msg.textContent = "Synchronisation…";
-    fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ key: ACCESS_KEY, action: "syncHiringKitchen" }),
-    })
-      .then(r => r.json())
-      .then(res => {
-        btn.disabled = false;
-        if (res.error) { msg.textContent = res.error; return; }
-        const parts = [];
-        if (res.count > 0) parts.push(res.count + " nouveau" + (res.count > 1 ? "x" : "") + " salarié" + (res.count > 1 ? "s" : "") + " ajouté" + (res.count > 1 ? "s" : "") + " : " + res.added.join(", "));
-        if (res.updatedCount > 0) parts.push(res.updatedCount + " mis" + (res.updatedCount > 1 ? "" : "") + " à jour : " + res.updated.join(", "));
+        [res.front, res.kitchen].forEach(r => {
+          if (!r) return;
+          if (r.count > 0) parts.push(r.count + " ajouté" + (r.count > 1 ? "s" : "") + " : " + r.added.join(", "));
+          if (r.updatedCount > 0) parts.push(r.updatedCount + " mis à jour : " + r.updated.join(", "));
+          if (r.removedCount > 0) parts.push(r.removedCount + " retiré" + (r.removedCount > 1 ? "s" : "") + " (plus Current+Hired) : " + r.removed.join(", "));
+        });
         msg.textContent = parts.length ? parts.join(" · ") : "Rien à actualiser, tout est déjà à jour.";
         loadRoster();
       })
