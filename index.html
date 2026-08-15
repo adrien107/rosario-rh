@@ -265,16 +265,12 @@
   .archive-section-band.salle-band { background: #3d5a6c; }
   .archive-section-band.cuisine-band { background: var(--accent); }
   .toc {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 10px;
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 14px 16px;
     margin-bottom: 18px;
-    font-size: 13px;
+    font-size: 14px;
   }
   .toc-label {
     font-weight: 700;
@@ -282,18 +278,13 @@
     letter-spacing: 0.04em;
     font-size: 11px;
     color: var(--muted);
-    margin-right: 4px;
+    margin-bottom: 8px;
   }
-  .toc a {
-    color: var(--accent);
-    text-decoration: none;
-    font-weight: 600;
-  }
+  .toc a { color: var(--accent); text-decoration: none; font-weight: 600; }
   .toc a:hover { text-decoration: underline; }
-  .toc-group { display: inline-flex; align-items: center; gap: 8px; }
+  .toc-line { padding: 3px 0; }
   .toc-parent { color: var(--ink); font-weight: 700; }
-  .toc-sep { color: var(--line); }
-  .toc-divider { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+  .toc-sub { padding-left: 18px; }
 </style>
 </head>
 <body>
@@ -321,15 +312,14 @@
   </header>
 
   <nav class="toc" aria-label="Sommaire">
-    <span class="toc-label">Sommaire</span>
-    <span class="toc-group">
-      <span class="toc-parent">Employés :</span>
-      <a href="#section-manager">Manager</a><span class="toc-sep">·</span>
-      <a href="#section-salle">Salle</a><span class="toc-sep">·</span>
-      <a href="#section-cuisine">Cuisine</a>
-    </span>
-    <span class="toc-divider"></span>
-    <a href="#archiveCard" onclick="document.getElementById('archiveCard').classList.remove('collapsed')">Employés archivés</a>
+    <div class="toc-label">Sommaire</div>
+    <div class="toc-line toc-parent">Employés</div>
+    <div class="toc-sub">
+      <div class="toc-line"><a href="#section-manager">Manager</a></div>
+      <div class="toc-line"><a href="#section-salle">Salle</a></div>
+      <div class="toc-line"><a href="#section-cuisine">Cuisine</a></div>
+    </div>
+    <div class="toc-line"><a href="#archiveCard" onclick="document.getElementById('archiveCard').classList.remove('collapsed')">Employés archivés</a></div>
   </nav>
 
   <div class="card process-card collapsed" id="processCard">
