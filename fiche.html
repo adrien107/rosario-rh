@@ -375,6 +375,36 @@
       </div>
     </div>
 
+    <div class="card">
+      <p class="card-title">Congés payés<button type="button" class="btn-secondary btn-small" id="editCongesBtn" style="text-transform:none; letter-spacing:normal; font-weight:600;">Modifier</button></p>
+      <div id="congesReadView">
+        <div class="essai-row"><span class="k">Solde CP N-1</span><span class="v" id="roSoldeCPN1">—</span></div>
+        <div class="essai-row"><span class="k">Solde CP N</span><span class="v" id="roSoldeCPN">—</span></div>
+        <div class="essai-row" style="font-weight:700;"><span class="k">Solde total</span><span class="v" id="roSoldeCPTotal">—</span></div>
+        <div class="essai-row"><span class="k">À jour au</span><span class="v" id="roSoldeCPMaj">—</span></div>
+      </div>
+      <div id="congesEditView" style="display:none; margin-top:10px;">
+        <div class="field-row">
+          <div class="field">
+            <label for="fSoldeCPN1">Solde CP N-1 (jours)</label>
+            <input type="number" step="0.5" id="fSoldeCPN1">
+          </div>
+          <div class="field">
+            <label for="fSoldeCPN">Solde CP N (jours)</label>
+            <input type="number" step="0.5" id="fSoldeCPN">
+          </div>
+        </div>
+        <div class="field">
+          <label for="fSoldeCPTotal">Solde total (jours)</label>
+          <input type="number" step="0.5" id="fSoldeCPTotal">
+        </div>
+        <button class="btn-primary btn-small" id="saveCongesBtn">Enregistrer</button>
+        <button class="btn-secondary btn-small" id="cancelCongesBtn">Annuler</button>
+        <div class="status-msg" id="congesStatusMsg"></div>
+      </div>
+      <p class="essai-note">Convention collective HCR (IDCC 1979) — période de référence CP N : 01/06/2026 au 31/05/2027. Acquisition : 2,5 jours ouvrables/mois (max 30/an). CP N-1 (acquis 01/06/2025–31/05/2026) à prendre avant le 31/05/2027, sous peine d'être perdus (sauf accord de report). Période de prise des congés : 01/05 au 31/10. Congés à poser au plus tard le 30/04 ; départs en juillet/août à poser avant le 31/03. Indicatif — à vérifier avec un conseil juridique.</p>
+    </div>
+
     <div id="blocksContainer"></div>
 
   </div>
@@ -533,6 +563,7 @@
     renderStatutBadge();
     renderEssaiValideeReadView();
     renderSujetEnCours();
+    renderCongesReadView();
 
     renderEssai();
     renderBlocks();
@@ -808,6 +839,53 @@
       employeeData.essaiValidee = val;
       renderEssaiValideeReadView();
       document.getElementById("essaiEditView").style.display = "none";
+      msg.textContent = "Enregistré.";
+      setTimeout(() => { msg.textContent = ""; }, 2500);
+    }).catch(() => { msg.textContent = "Connexion impossible."; });
+  });
+
+  // ---------- Congés payés (lecture seule + Modifier) ----------
+  function fmtSoldeCP(v) {
+    if (v === null || v === undefined || v === "") return "— À définir —";
+    return (Math.round(Number(v) * 100) / 100).toString().replace(".", ",") + " j";
+  }
+  function renderCongesReadView() {
+    document.getElementById("roSoldeCPN1").textContent = fmtSoldeCP(employeeData.soldeCPN1);
+    document.getElementById("roSoldeCPN").textContent = fmtSoldeCP(employeeData.soldeCPN);
+    document.getElementById("roSoldeCPTotal").textContent = fmtSoldeCP(employeeData.soldeCPTotal);
+    document.getElementById("roSoldeCPMaj").textContent = employeeData.soldeCPMaj ? fmtDateFr(new Date(employeeData.soldeCPMaj + "T00:00:00")) : "—";
+  }
+  document.getElementById("editCongesBtn").addEventListener("click", () => {
+    document.getElementById("fSoldeCPN1").value = employeeData.soldeCPN1 ?? "";
+    document.getElementById("fSoldeCPN").value = employeeData.soldeCPN ?? "";
+    document.getElementById("fSoldeCPTotal").value = employeeData.soldeCPTotal ?? "";
+    document.getElementById("congesEditView").style.display = "block";
+  });
+  document.getElementById("cancelCongesBtn").addEventListener("click", () => {
+    document.getElementById("congesEditView").style.display = "none";
+  });
+  document.getElementById("saveCongesBtn").addEventListener("click", () => {
+    const msg = document.getElementById("congesStatusMsg");
+    const n1raw = document.getElementById("fSoldeCPN1").value;
+    const nraw = document.getElementById("fSoldeCPN").value;
+    const totalraw = document.getElementById("fSoldeCPTotal").value;
+    const maj = new Date().toISOString().slice(0, 10);
+    msg.textContent = "Enregistrement…";
+    apiPost({
+      action: "updateEmployee",
+      id: employeeId,
+      SoldeCPN1: n1raw === "" ? "" : Number(n1raw),
+      SoldeCPN: nraw === "" ? "" : Number(nraw),
+      SoldeCPTotal: totalraw === "" ? "" : Number(totalraw),
+      SoldeCPMaj: maj,
+    }).then(res => {
+      if (res.error) { msg.textContent = res.error; return; }
+      employeeData.soldeCPN1 = n1raw === "" ? null : Number(n1raw);
+      employeeData.soldeCPN = nraw === "" ? null : Number(nraw);
+      employeeData.soldeCPTotal = totalraw === "" ? null : Number(totalraw);
+      employeeData.soldeCPMaj = maj;
+      renderCongesReadView();
+      document.getElementById("congesEditView").style.display = "none";
       msg.textContent = "Enregistré.";
       setTimeout(() => { msg.textContent = ""; }, 2500);
     }).catch(() => { msg.textContent = "Connexion impossible."; });
