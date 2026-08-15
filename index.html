@@ -655,19 +655,19 @@
   // versés (EnDepart="oui" && STCVerse!=="oui", indépendant du Statut
   // Actif/Sorti car un STC en attente reste un point à traiter même après
   // le départ effectif). Chaque ligne renvoie vers la fiche concernée.
-  function renderWatchList(el, list, emptyMsg, detailFn) {
-    if (!list.length) { el.innerHTML = '<div class="empty-state">' + emptyMsg + '</div>'; return; }
+  function renderWatchList(el, items, emptyMsg) {
+    if (!items.length) { el.innerHTML = '<div class="empty-state">' + emptyMsg + '</div>'; return; }
     el.innerHTML = "";
-    list.forEach(emp => {
+    items.forEach(item => {
       const a = document.createElement("a");
       a.className = "watch-row";
-      a.href = "fiche.html?id=" + encodeURIComponent(emp.id);
+      a.href = "fiche.html?id=" + encodeURIComponent(item.id);
       const nameEl = document.createElement("span");
       nameEl.className = "watch-name";
-      nameEl.textContent = emp.nom;
+      nameEl.textContent = item.nom;
       const detailEl = document.createElement("span");
       detailEl.className = "watch-detail";
-      detailEl.textContent = detailFn(emp);
+      detailEl.textContent = item.detail;
       a.appendChild(nameEl);
       a.appendChild(detailEl);
       el.appendChild(a);
@@ -713,23 +713,32 @@
         const active = data.filter(emp => !isArchived(emp));
         const archived = data.filter(emp => isArchived(emp));
 
-        // Points de vigilance (v9) : sujets en cours (actifs uniquement) et
-        // STC non versés (actifs ET archivés, un départ effectif n'annule
-        // pas le suivi du STC restant à payer).
-        const sujetsEnCours = active.filter(emp => (emp.sujetEnCours || "").trim());
-        const stcNonVerses = data.filter(emp => emp.enDepart === "oui" && emp.stcVerse !== "oui");
-        renderWatchList(
-          document.getElementById("watchListSujets"),
-          sujetsEnCours,
-          "Aucun sujet en cours.",
-          emp => (emp.sujetEnCours || "").trim()
-        );
-        renderWatchList(
-          document.getElementById("watchListSTC"),
-          stcNonVerses,
-          "Aucun STC en attente.",
-          emp => "STC non versé" + (emp.dateDepart ? " (départ " + fmtDateFr(new Date(emp.dateDepart + "T00:00:00")) + ")" : "")
-        );
+        // Points de vigilance (v9) : sujets en cours + visas expirés (actifs
+        // uniquement), et STC non versés (actifs ET archivés, un départ
+        // effectif n'annule pas le suivi du STC restant à payer). Un salarié
+        // peut apparaître deux fois dans "Sujets en cours" s'il a à la fois
+        // un sujet libre ET un visa expiré — ce sont deux points distincts.
+        const sujetsItems = [];
+        active.forEach(emp => {
+          const sujet = (emp.sujetEnCours || "").trim();
+          if (sujet) sujetsItems.push({ id: emp.id, nom: emp.nom, detail: sujet });
+          if (emp.nationalite === "Non Europe" && isVisaExpiringSoon(emp.dateExpirationVisa) === "expired") {
+            sujetsItems.push({
+              id: emp.id,
+              nom: emp.nom,
+              detail: "Visa expiré (" + fmtDateFr(new Date(emp.dateExpirationVisa + "T00:00:00")) + ")",
+            });
+          }
+        });
+        const stcItems = data
+          .filter(emp => emp.enDepart === "oui" && emp.stcVerse !== "oui")
+          .map(emp => ({
+            id: emp.id,
+            nom: emp.nom,
+            detail: "STC non versé" + (emp.dateDepart ? " (départ " + fmtDateFr(new Date(emp.dateDepart + "T00:00:00")) + ")" : ""),
+          }));
+        renderWatchList(document.getElementById("watchListSujets"), sujetsItems, "Aucun sujet en cours.");
+        renderWatchList(document.getElementById("watchListSTC"), stcItems, "Aucun STC en attente.");
 
         const manager = sortByAnciennete(active.filter(emp => isManager(emp)));
         const bar = sortByAnciennete(active.filter(emp => !isManager(emp) && isBar(emp)));
