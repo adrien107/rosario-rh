@@ -405,6 +405,21 @@
       <p class="essai-note">Convention collective HCR (IDCC 1979) — période de référence CP N : 01/06/2026 au 31/05/2027. Acquisition : 2,5 jours ouvrables/mois (max 30/an). CP N-1 (acquis 01/06/2025–31/05/2026) à prendre avant le 31/05/2027, sous peine d'être perdus (sauf accord de report). Période de prise des congés : 01/05 au 31/10. Congés à poser au plus tard le 30/04 ; départs en juillet/août à poser avant le 31/03. Indicatif — à vérifier avec un conseil juridique.</p>
     </div>
 
+    <div class="card">
+      <p class="card-title">Ajouter un meeting</p>
+      <p class="essai-note" style="margin-top:-6px; margin-bottom:12px;">Pour un point ponctuel en plus du parcours ci-dessous (ex : le salarié demande à faire un point). Il s'intègre automatiquement dans la timeline selon sa date.</p>
+      <div class="field">
+        <label for="fNewMeetingDate">Date</label>
+        <input type="date" id="fNewMeetingDate">
+      </div>
+      <div class="field">
+        <label for="fNewMeetingNotes">Ce qui s'est dit</label>
+        <textarea id="fNewMeetingNotes" placeholder="Sujet abordé, décisions, suite à donner…"></textarea>
+      </div>
+      <button class="btn-primary btn-small" id="addMeetingBtn">Ajouter</button>
+      <div class="status-msg" id="addMeetingStatusMsg"></div>
+    </div>
+
     <div id="blocksContainer"></div>
 
   </div>
@@ -503,6 +518,7 @@
 
   let employeeData = null;
   let blocksData = {};
+  let extraMeetings = [];
 
   function init() {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_") === 0) {
@@ -527,6 +543,7 @@
       if (empRes.error) { showError(empRes.error); return; }
       employeeData = empRes.employee;
       blocksData = empRes.blocks || {};
+      extraMeetings = empRes.extraMeetings || [];
       render();
     }).catch(() => showError("Connexion impossible à l'Apps Script."));
   }
@@ -1037,11 +1054,124 @@
   }
 
   // ---------- Blocs ----------
+  // Fusionne les meetings ponctuels (extraMeetings) avec les points fixes du
+  // parcours (BLOCKS), en les intercalant selon leur date : un meeting
+  // ponctuel s'insère juste avant le premier point fixe déjà daté dont la
+  // date lui est postérieure, sinon il est ajouté après tous les points fixes.
   function renderBlocks() {
     const container = document.getElementById("blocksContainer");
     container.innerHTML = "";
-    BLOCKS.forEach(block => container.appendChild(renderBlockCard(block)));
+    const sortedExtras = extraMeetings.slice().sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    const used = new Array(sortedExtras.length).fill(false);
+    BLOCKS.forEach(block => {
+      const blockDate = (blocksData[block.key] || {}).interviewDate || "";
+      if (blockDate) {
+        sortedExtras.forEach((m, idx) => {
+          if (!used[idx] && m.date && m.date <= blockDate) {
+            container.appendChild(renderExtraMeetingCard(m));
+            used[idx] = true;
+          }
+        });
+      }
+      container.appendChild(renderBlockCard(block));
+    });
+    sortedExtras.forEach((m, idx) => {
+      if (!used[idx]) container.appendChild(renderExtraMeetingCard(m));
+    });
   }
+
+  // Carte d'un meeting ponctuel : date + notes libres, modifiable/supprimable
+  // directement (pas de statut ni de checklist, contrairement aux points fixes).
+  function renderExtraMeetingCard(meeting) {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const titleRow = document.createElement("p");
+    titleRow.className = "card-title collapsible";
+    titleRow.innerHTML = '<span class="card-title-left"><span class="card-title-text">Point ponctuel</span><span class="block-date-summary"></span></span><span class="card-title-right" style="display:flex; align-items:center; gap:8px;"></span>';
+    const dateSummary = titleRow.querySelector(".block-date-summary");
+    const rightWrap = titleRow.querySelector(".card-title-right");
+    const chevron = document.createElement("span");
+    chevron.className = "collapse-chevron";
+    chevron.textContent = "▾";
+    rightWrap.appendChild(chevron);
+    card.appendChild(titleRow);
+
+    const bodyWrap = document.createElement("div");
+    bodyWrap.className = "block-body";
+    card.appendChild(bodyWrap);
+    titleRow.addEventListener("click", () => { card.classList.toggle("collapsed"); });
+
+    const dateWrap = document.createElement("div");
+    dateWrap.className = "field";
+    dateWrap.innerHTML = "<label>Date</label><input type=\"date\" class=\"f-extra-date\">";
+    const dateInput = dateWrap.querySelector("input");
+    dateInput.value = meeting.date || "";
+    bodyWrap.appendChild(dateWrap);
+
+    function refreshDateSummary() {
+      dateSummary.textContent = dateInput.value ? fmtDateFr(new Date(dateInput.value + "T00:00:00")) : "";
+    }
+    refreshDateSummary();
+
+    bodyWrap.appendChild(fieldTextarea("Ce qui s'est dit", "f-extra-notes", meeting.notes));
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn-primary btn-small";
+    saveBtn.textContent = "Enregistrer";
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn-secondary btn-small";
+    delBtn.style.marginLeft = "8px";
+    delBtn.textContent = "Supprimer";
+    bodyWrap.appendChild(saveBtn);
+    bodyWrap.appendChild(delBtn);
+    const statusMsg = document.createElement("div");
+    statusMsg.className = "status-msg";
+    bodyWrap.appendChild(statusMsg);
+
+    saveBtn.addEventListener("click", () => {
+      const newDate = dateInput.value;
+      const newNotes = bodyWrap.querySelector(".f-extra-notes").value;
+      if (!newDate) { statusMsg.textContent = "Renseigne une date."; return; }
+      statusMsg.textContent = "Enregistrement…";
+      apiPost({ action: "updateExtraMeeting", id: meeting.id, date: newDate, notes: newNotes }).then(res => {
+        if (res.error) { statusMsg.textContent = res.error; return; }
+        meeting.date = newDate;
+        meeting.notes = newNotes;
+        statusMsg.textContent = "Enregistré.";
+        // Réordonne la timeline si la date a changé (repli/repositionnement).
+        setTimeout(() => { renderBlocks(); }, 500);
+      }).catch(() => { statusMsg.textContent = "Connexion impossible."; });
+    });
+
+    delBtn.addEventListener("click", () => {
+      if (!confirm("Supprimer ce meeting ponctuel ?")) return;
+      apiPost({ action: "deleteExtraMeeting", id: meeting.id }).then(res => {
+        if (res.error) { alert(res.error); return; }
+        extraMeetings = extraMeetings.filter(m => m.id !== meeting.id);
+        renderBlocks();
+      }).catch(() => alert("Connexion impossible."));
+    });
+
+    return card;
+  }
+
+  document.getElementById("addMeetingBtn").addEventListener("click", () => {
+    const msg = document.getElementById("addMeetingStatusMsg");
+    const date = document.getElementById("fNewMeetingDate").value;
+    const notes = document.getElementById("fNewMeetingNotes").value;
+    if (!date) { msg.textContent = "Renseigne une date."; return; }
+    msg.textContent = "Enregistrement…";
+    apiPost({ action: "addExtraMeeting", employeeId: employeeId, date: date, notes: notes }).then(res => {
+      if (res.error) { msg.textContent = res.error; return; }
+      extraMeetings.push({ id: res.id, date: date, notes: notes });
+      document.getElementById("fNewMeetingDate").value = "";
+      document.getElementById("fNewMeetingNotes").value = "";
+      msg.textContent = "Ajouté.";
+      setTimeout(() => { msg.textContent = ""; }, 2000);
+      renderBlocks();
+    }).catch(() => { msg.textContent = "Connexion impossible."; });
+  });
 
   function escapeHtml(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
