@@ -441,7 +441,8 @@
   }
 
   // ---------- Checklists imbriquées ----------
-  const ONBOARDING_ITEMS = [
+  // On-boarding Salle (inchangé).
+  const ONBOARDING_ITEMS_SALLE = [
     { id: "ob1", label: "Présentation à l'équipe" },
     { id: "ob2", label: "Règlement intérieur" },
     { id: "ob3", label: "Explication des règles de base", children: [
@@ -456,6 +457,30 @@
     ]},
     { id: "ob5", label: "Parcourir le Notion" },
   ];
+
+  // On-boarding Cuisine (demande Adrien du 2026-09-29).
+  const ONBOARDING_ITEMS_CUISINE = [
+    { id: "obc1", label: "Welcome Book" },
+    { id: "obc2", label: "Internal Rules" },
+    { id: "obc3", label: "Informations utiles" },
+    { id: "obc4", label: "Admin" },
+  ];
+
+  // Même liste de postes cuisine que index.html / le fichier .gs (KITCHEN_POSTES_) —
+  // sert à choisir la checklist d'on-boarding adaptée (Salle vs Cuisine).
+  const KITCHEN_POSTES_ = ["Chef", "Chef de cuisine", "Executive Chef", "Head Chef",
+    "Sous-chef", "Junior Sous-chef", "Second de cuisine", "Chef de partie",
+    "Commis", "Commis de cuisine", "Plongeur", "Plonge", "Kitchen Porter"];
+  const KITCHEN_CATEGORIES_ = ["Chef", "Sous-Chef", "Commis", "Plonge", "Cuisine"];
+  function isKitchenEmployee(emp) {
+    if (!emp) return false;
+    if (KITCHEN_POSTES_.indexOf(emp.poste) !== -1) return true;
+    if (KITCHEN_CATEGORIES_.indexOf(emp.categorie) !== -1) return true;
+    return false;
+  }
+  function onboardingItemsFor(emp) {
+    return isKitchenEmployee(emp) ? ONBOARDING_ITEMS_CUISINE : ONBOARDING_ITEMS_SALLE;
+  }
 
   const FORMATION_ITEMS = [
     { id: "f1", label: "Validation de la maîtrise du Notion" },
@@ -486,7 +511,7 @@
   //       "formation"  = retour 1ère semaine (commentaires) + checklist formation
   //       "double"     = entretien classique (points positifs / axes d'amélioration / next steps), pas de checklist
   const BLOCKS = [
-    { key: "onboarding", label: "On-boarding", kind: "checklist", items: ONBOARDING_ITEMS, showPrevious: null },
+    { key: "onboarding", label: "On-boarding", kind: "checklist", items: ONBOARDING_ITEMS_SALLE, showPrevious: null },
     { key: "formation", label: "Formation & Retour 1ère semaine", kind: "formation", items: FORMATION_ITEMS, showPrevious: null },
     { key: "month1", label: "Entretien 1 mois", kind: "double", showPrevious: "formation" },
     { key: "month2", label: "Entretien 2 mois", kind: "double", showPrevious: "month1" },
@@ -1430,9 +1455,10 @@
     let checklistCheckedFormation = null;
 
     if (block.kind === "checklist") {
-      // On-boarding : uniquement la checklist
+      // On-boarding : uniquement la checklist — Salle ou Cuisine selon le poste.
       checklistCheckedOnboarding = Object.assign({}, data.checklistChecked || {});
-      bodyWrap.appendChild(renderChecklist(block.items, checklistCheckedOnboarding, () => {}));
+      const onboardingItems = block.key === "onboarding" ? onboardingItemsFor(employeeData) : block.items;
+      bodyWrap.appendChild(renderChecklist(onboardingItems, checklistCheckedOnboarding, () => {}));
     } else if (block.kind === "formation") {
       // On commence par le Retour 1ère semaine (c'est le premier point du rendez-vous), puis la checklist Formation.
       const retourTitle = document.createElement("p");
