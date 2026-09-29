@@ -1293,6 +1293,13 @@
     bodyWrap.appendChild(fieldTextarea("", "f-next-steps", data.nextSteps, true));
   }
 
+  // Pour la Cuisine, le bloc "formation" perd sa checklist Formation et
+  // s'appelle simplement "Retour 1ère semaine" (demande Adrien du 2026-09-29).
+  function blockDisplayLabel(block) {
+    if (block.key === "formation" && isKitchenEmployee(employeeData)) return "Retour 1ère semaine";
+    return block.label;
+  }
+
   function renderBlockCard(block) {
     const data = blocksData[block.key] || {};
 
@@ -1308,7 +1315,7 @@
     const titleRow = document.createElement("p");
     titleRow.className = "card-title collapsible";
     titleRow.innerHTML = '<span class="card-title-left"><span class="card-title-text"></span><span class="block-date-summary"></span></span><span class="card-title-right" style="display:flex; align-items:center; gap:8px;"></span>';
-    titleRow.querySelector(".card-title-text").textContent = block.label;
+    titleRow.querySelector(".card-title-text").textContent = blockDisplayLabel(block);
     const rightWrap = titleRow.querySelector(".card-title-right");
 
     // Résumé visible même quand le bloc est replié : date de l'entretien
@@ -1360,7 +1367,7 @@
     // Titre d'invitation Google Calendar : "Prénom <> Adrien - [label du point]".
     function getInviteTitle() {
       const firstName = (employeeData && employeeData.nom) ? employeeData.nom.split(" ")[0] : "";
-      return firstName + " <> Adrien - " + block.label;
+      return firstName + " <> Adrien - " + blockDisplayLabel(block);
     }
 
     // Lien "Créer l'invitation Google Calendar" — visible dès que le point
@@ -1460,24 +1467,35 @@
       const onboardingItems = block.key === "onboarding" ? onboardingItemsFor(employeeData) : block.items;
       bodyWrap.appendChild(renderChecklist(onboardingItems, checklistCheckedOnboarding, () => {}));
     } else if (block.kind === "formation") {
-      // On commence par le Retour 1ère semaine (c'est le premier point du rendez-vous), puis la checklist Formation.
-      const retourTitle = document.createElement("p");
-      retourTitle.className = "subsection-title";
-      retourTitle.textContent = "Retour 1ère semaine";
-      bodyWrap.appendChild(retourTitle);
-      appendInterviewFields(bodyWrap, data);
+      // Cuisine (demande Adrien du 2026-09-29) : plus de checklist Formation,
+      // le bloc se limite au Retour 1ère semaine (déjà le titre de la carte,
+      // donc pas de sous-titre redondant ici).
+      if (isKitchenEmployee(employeeData)) {
+        // Préserve un éventuel checklistChecked existant (ne l'écrase pas à
+        // l'enregistrement) même si la checklist n'est plus affichée.
+        checklistCheckedFormation = Object.assign({}, data.checklistChecked || {});
+        appendInterviewFields(bodyWrap, data);
+      } else {
+        // Salle (inchangé) : on commence par le Retour 1ère semaine (c'est le
+        // premier point du rendez-vous), puis la checklist Formation.
+        const retourTitle = document.createElement("p");
+        retourTitle.className = "subsection-title";
+        retourTitle.textContent = "Retour 1ère semaine";
+        bodyWrap.appendChild(retourTitle);
+        appendInterviewFields(bodyWrap, data);
 
-      const divider = document.createElement("div");
-      divider.className = "subsection-divider";
-      const formationTitle = document.createElement("p");
-      formationTitle.className = "subsection-title";
-      formationTitle.style.marginTop = "0";
-      formationTitle.textContent = "Formation";
-      divider.appendChild(formationTitle);
-      bodyWrap.appendChild(divider);
+        const divider = document.createElement("div");
+        divider.className = "subsection-divider";
+        const formationTitle = document.createElement("p");
+        formationTitle.className = "subsection-title";
+        formationTitle.style.marginTop = "0";
+        formationTitle.textContent = "Formation";
+        divider.appendChild(formationTitle);
+        bodyWrap.appendChild(divider);
 
-      checklistCheckedFormation = Object.assign({}, data.checklistChecked || {});
-      bodyWrap.appendChild(renderChecklist(block.items, checklistCheckedFormation, () => {}));
+        checklistCheckedFormation = Object.assign({}, data.checklistChecked || {});
+        bodyWrap.appendChild(renderChecklist(block.items, checklistCheckedFormation, () => {}));
+      }
     } else {
       // Entretien classique : pas de checklist
       appendInterviewFields(bodyWrap, data);
